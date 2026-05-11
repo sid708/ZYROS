@@ -1,0 +1,21 @@
+{
+  "name": "ZYROS",
+  "short_name": "ZYROS",
+  "start_url": "/zyros/",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#050508",
+  "description": "ZYROS Humanoid App",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
