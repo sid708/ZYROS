@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#050508"/>
+<title>ZYROS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#050508;--bg2:#0d0d14;--bg3:#13131e;--bg4:#1a1a28;
+  --border:#ffffff0f;--border2:#ffffff1a;
+  --purple:#7c3aed;--purple3:#c4a0ff;
+  --cyan:#06b6d4;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--pink:#ec4899;
+  --text:#e8e8f0;--text2:#9898b0;--text3:#5a5a70;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+.app{width:100%;max-width:430px;height:100vh;margin:0 auto;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;overflow-x:hidden}
+.page.active{transform:translateX(0)}
+.page.behind{transform:translateX(-40px)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 16px;flex-shrink:0}
+.topbar-title{font-size:11px;letter-spacing:3px;color:var(--text2);font-weight:500}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--purple3);font-size:13px;font-weight:500;cursor:pointer;padding:4px 0;background:none;border:none}
+.icon-btn{width:36px;height:36px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px}
+.icon-btn:active{transform:scale(0.93)}
+
+/* Home */
+.home-header{padding:52px 20px 12px;display:flex;align-items:flex-start;justify-content:space-between}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-svg{width:42px;height:42px;flex-shrink:0}
+.zyros-name{font-size:30px;font-weight:800;letter-spacing:6px;color:var(--purple)}
+.zyros-sub{font-size:8px;letter-spacing:1.5px;color:var(--text3);margin-top:2px}
+.conn-badge{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 10px}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:var(--red);transition:background .3s}
+.conn-dot.on{background:var(--green)}
+.conn-text{font-size:11px;color:var(--text2)}
+.status-strip{margin:0 20px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.si{display:flex;flex-direction:column;gap:3px;align-items:center}
+.si-label{font-size:9px;color:var(--text3);letter-spacing:1px}
+.si-val{font-size:13px;font-weight:600}
+.si-val.ok{color:var(--green)}.si-val.warn{color:var(--amber)}.si-val.err{color:var(--red)}.si-val.info{color:var(--cyan)}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 20px 20px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px;cursor:pointer;min-height:125px;position:relative;overflow:hidden}
+.mc:active{transform:scale(0.96);border-color:var(--purple)}
+.mc::before{content:'';position:absolute;top:0;right:0;width:65px;height:65px;border-radius:0 20px 0 65px;opacity:.07}
+.mc.cp::before{background:var(--purple)}.mc.cc::before{background:var(--cyan)}.mc.cg::before{background:var(--green)}.mc.ca::before{background:var(--amber)}.mc.cr::before{background:var(--red)}.mc.ck::before{background:var(--pink)}
+.mi{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.mi.cp{background:#7c3aed18}.mi.cc{background:#06b6d418}.mi.cg{background:#10b98118}.mi.ca{background:#f59e0b18}.mi.cr{background:#ef444418}.mi.ck{background:#ec489918}
+.ml{font-size:14px;font-weight:600}.md{font-size:11px;color:var(--text3);line-height:1.4}
+.marr{position:absolute;bottom:14px;right:14px;color:var(--text3);font-size:15px}
+
+/* Buttons */
+.btn{border:none;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-purple{background:var(--purple);color:#fff}
+.btn-purple:active{transform:scale(0.96)}
+.btn-full{width:100%}
+.btn-outline{background:transparent;color:var(--purple3);border:1px solid var(--border2)}
+
+/* Inputs */
+.inp{background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;transition:border .2s;width:100%}
+.inp:focus{border-color:var(--purple)}
+.inp::placeholder{color:var(--text3)}
+.section{padding:0 20px 16px}
+.slabel{font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:8px}
+
+/* D-pad */
+.dpad-wrap{display:flex;flex-direction:column;align-items:center;padding:20px;gap:18px}
+.dpad{display:grid;grid-template-columns:repeat(3,68px);grid-template-rows:repeat(3,68px);gap:8px}
+.dp{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--text2);cursor:pointer;user-select:none;transition:all .12s}
+.dp:active,.dp.pressed{background:var(--purple);border-color:var(--purple);color:#fff;transform:scale(0.93)}
+.dp-empty{background:transparent;border:none;pointer-events:none}
+.dp-stop{font-size:11px;color:var(--red);font-weight:700}
+.speed-row{display:flex;align-items:center;gap:12px;width:100%}
+input[type=range]{flex:1;accent-color:var(--purple)}
+.speed-val{font-size:13px;font-weight:600;color:var(--purple3);min-width:24px;text-align:right}
+
+/* Talk */
+.talk-section{padding:20px;display:flex;flex-direction:column;gap:14px}
+.talk-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.tch{display:flex;align-items:center;gap:10px}
+.tci{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.tct{font-size:14px;font-weight:600}.tcs{font-size:11px;color:var(--text3)}
+.mic-btn{width:64px;height:64px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:all .2s;align-self:center;background:#7c3aed22;border:2px solid var(--purple)}
+.mic-btn:active{transform:scale(0.92)}
+.mic-btn.pressed{background:#7c3aed44;border-color:var(--purple3);box-shadow:0 0 0 6px #7c3aed33, 0 0 18px #7c3aed55}
+.mic-btn.listening{background:var(--red);border-color:var(--red);box-shadow:0 0 0 6px #ef444433, 0 0 18px #ef444455;animation:ripple 1s infinite}@keyframes ripple{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 14px rgba(239,68,68,0)}}
+.bubble{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:11px 13px;font-size:13px;color:var(--text2);min-height:42px;line-height:1.6}
+.bubble.ai{background:#1a0a2e;border-color:#3b1d6e;color:#c4b5fd}
+
+/* Camera */
+.cam-wrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+.cam-feed{background:var(--bg2);border:1px solid var(--border);border-radius:20px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--text3);font-size:13px;overflow:hidden;position:relative}
+.cam-feed img{width:100%;height:100%;object-fit:cover;display:none}
+.cam-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cam-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2)}
+.cam-btn:active{background:var(--bg4);color:var(--purple3)}
+
+/* Travel / Map */
+.travel-wrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+.env-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.env-tabs::-webkit-scrollbar{display:none}
+.env-tab{flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);white-space:nowrap}
+.env-tab.active{background:var(--purple);border-color:var(--purple);color:#fff}
+.env-tab.add{color:var(--purple3);border-style:dashed}
+.map-container{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:100%;aspect-ratio:1;position:relative;overflow:hidden;cursor:crosshair}
+.map-grid-bg{position:absolute;inset:0;opacity:.05;background-image:linear-gradient(var(--purple) 1px,transparent 1px),linear-gradient(90deg,var(--purple) 1px,transparent 1px);background-size:40px 40px}
+.map-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.6;display:none}
+.map-label-text{position:absolute;top:12px;left:12px;font-size:9px;letter-spacing:2px;color:var(--text3)}
+.map-scale-text{position:absolute;bottom:12px;right:12px;font-size:9px;color:var(--text3);background:var(--bg);border-radius:6px;padding:3px 8px;border:1px solid var(--border)}
+.map-bot{position:absolute;width:18px;height:18px;background:var(--purple);border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--purple3);transition:all .5s ease;z-index:5}
+.map-dot{position:absolute;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:3}
+.map-dot.home-dot{background:var(--green);border:2px solid #34d399}
+.map-dot.custom-dot{background:var(--cyan);border:2px solid #67e8f9}
+.map-dot.target-dot{animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.dot-lbl{position:absolute;font-size:9px;color:var(--text2);white-space:nowrap;top:14px;left:50%;transform:translateX(-50%);background:var(--bg);padding:1px 4px;border-radius:4px;pointer-events:none}
+.spot-list{display:flex;flex-direction:column;gap:8px}
+.spot-item{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+.spot-name{font-size:13px;font-weight:500}
+.spot-desc{font-size:11px;color:var(--text3)}
+.spot-actions{display:flex;gap:6px}
+.spot-go{background:var(--purple);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.spot-del{background:transparent;border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--red);font-size:12px;cursor:pointer}
+.add-spot-btn{background:transparent;border:1px dashed var(--border2);border-radius:12px;padding:13px;color:var(--text3);font-size:13px;cursor:pointer;text-align:center;width:100%}
+.upload-btn{background:var(--bg3);border:1px dashed var(--border2);border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;color:var(--text2);cursor:pointer;width:100%}
+.upload-btn:active{background:var(--bg4)}
+.map-mode-strip{display:flex;gap:8px}
+.map-mode-btn{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;text-align:center}
+.map-mode-btn.active{background:var(--purple);border-color:var(--purple);color:#fff}
+
+/* System */
+.system-wrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sys-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.sys-card-icon{font-size:22px}
+.sys-card-label{font-size:10px;letter-spacing:1px;color:var(--text3)}
+.sys-card-val{font-size:22px;font-weight:700}
+.sys-card-val.ok{color:var(--green)}.sys-card-val.warn{color:var(--amber)}.sys-card-val.err{color:var(--red)}
+.sys-bar{height:4px;border-radius:2px;background:var(--border2);overflow:hidden}
+.sys-bar-fill{height:100%;border-radius:2px;background:var(--green);transition:width .5s}
+.sys-bar-fill.warn{background:var(--amber)}.sys-bar-fill.err{background:var(--red)}
+.sys-row-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.sys-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.sys-row:last-child{border-bottom:none}
+.sys-row-label{font-size:13px;color:var(--text2)}
+.sys-row-val{font-size:13px;font-weight:600}
+
+/* Settings */
+.settings-wrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+.settings-group{background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-label{font-size:14px;font-weight:500}
+.settings-row-desc{font-size:11px;color:var(--text3)}
+.toggle{width:44px;height:26px;background:var(--purple);border-radius:13px;border:none;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.off{background:var(--bg4)}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;right:3px;transition:transform .2s}
+.toggle.off::after{transform:translateX(-18px)}
+.settings-inp{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text);font-size:13px;outline:none;text-align:right;max-width:150px}
+.settings-inp:focus{border-color:var(--purple)}
+.settings-link{cursor:pointer}
+.settings-link:active{background:var(--bg3)}
+
+/* Logs */
+.logs-wrap{padding:20px;display:flex;flex-direction:column;gap:10px}
+.log-entry{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.log-time{font-size:10px;color:var(--text3);font-family:monospace}
+.log-msg{font-size:13px}
+.log-msg.ok{color:var(--green)}.log-msg.err{color:var(--red)}.log-msg.info{color:var(--cyan)}.log-msg.warn{color:var(--amber)}
+
+/* Quick actions */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px}
+.qa-btn{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.qa-btn:active{transform:scale(0.95);border-color:var(--purple)}
+.qa-icon{font-size:24px}.qa-label{font-size:13px;font-weight:600}.qa-desc{font-size:11px;color:var(--text3)}
+
+/* Nav status bar */
+.nav-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;display:none;z-index:999;white-space:nowrap}
+.nav-toast.show{display:block;animation:fadeup .3s ease}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="home-header">
+    <div class="logo-wrap">
+      <svg class="logo-svg" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="42" height="42" rx="11" fill="#0d0d14"/>
+        <circle cx="21" cy="21" r="14" stroke="#7c3aed" stroke-width="1.5"/>
+        <circle cx="21" cy="21" r="9" stroke="#06b6d4" stroke-width="1"/>
+        <circle cx="21" cy="21" r="3.5" fill="#7c3aed"/>
+        <line x1="21" y1="7" x2="21" y2="4" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="21" y1="38" x2="21" y2="35" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="35" y1="21" x2="38" y2="21" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="4" y1="21" x2="7" y2="21" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="30.9" y1="11.1" x2="33.1" y2="8.9" stroke="#06b6d4" stroke-width="1" stroke-linecap="round"/>
+        <line x1="11.1" y1="30.9" x2="8.9" y2="33.1" stroke="#06b6d4" stroke-width="1" stroke-linecap="round"/>
+        <line x1="30.9" y1="30.9" x2="33.1" y2="33.1" stroke="#06b6d4" stroke-width="1" stroke-linecap="round"/>
+        <line x1="11.1" y1="11.1" x2="8.9" y2="8.9" stroke="#06b6d4" stroke-width="1" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="zyros-name" onclick="reconnect()" style="cursor:pointer">ZYROS</div>
+        <div class="zyros-sub">ZENITH YIELD REACTIVE ORGANISM SYSTEM</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="conn-badge"><div class="conn-dot" id="conn-dot"></div><span class="conn-text" id="conn-text">Offline</span></div>
+      <div class="icon-btn" onclick="goTo('page-settings')">⚙️</div>
+    </div>
+  </div>
+
+  <div class="status-strip">
+    <div class="si"><span class="si-label">SIGNAL</span><span class="si-val err" id="stat-signal">—</span></div>
+    <div class="si"><span class="si-label">BATTERY</span><span class="si-val warn" id="stat-battery">—</span></div>
+    <div class="si"><span class="si-label">STATUS</span><span class="si-val err" id="stat-status">IDLE</span></div>
+  </div>
+
+  <div class="menu-grid">
+    <div class="mc cp" onclick="goTo('page-quickactions')">
+      <div class="mi cp">⚡</div>
+      <div><div class="ml">Quick actions</div><div class="md">Fast commands and shortcuts</div></div>
+      <div class="marr">›</div>
+    </div>
+    <div class="mc cc" onclick="goTo('page-talk')">
+      <div class="mi cc">🎙️</div>
+      <div><div class="ml">Talk</div><div class="md">Speak to ZYROS or AI</div></div>
+      <div class="marr">›</div>
+    </div>
+    <div class="mc cg" onclick="goTo('page-camera')">
+      <div class="mi cg">📷</div>
+      <div><div class="ml">Camera</div><div class="md">Live feed and capture</div></div>
+      <div class="marr">›</div>
+    </div>
+    <div class="mc ca" onclick="goTo('page-travel')">
+      <div class="mi ca">🗺️</div>
+      <div><div class="ml">Travel</div><div class="md">Navigate to saved spots</div></div>
+      <div class="marr">›</div>
+    </div>
+    <div class="mc cr" onclick="goTo('page-system')">
+      <div class="mi cr">📊</div>
+      <div><div class="ml">System</div><div class="md">Battery, CPU, uptime</div></div>
+      <div class="marr">›</div>
+    </div>
+    <div class="mc ck" onclick="goTo('page-control')">
+      <div class="mi ck">🕹️</div>
+      <div><div class="ml">Control</div><div class="md">Manual movement</div></div>
+      <div class="marr">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="page" id="page-quickactions">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">QUICK ACTIONS</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="qa-grid">
+    <div class="qa-btn" onclick="quickAction('COME_HERE','Come here')"><div class="qa-icon">👋</div><div class="qa-label">Come here</div><div class="qa-desc">Navigate to you</div></div>
+    <div class="qa-btn" onclick="quickAction('GOTO_HOME','Go home')"><div class="qa-icon">🏠</div><div class="qa-label">Go home</div><div class="qa-desc">Return to base</div></div>
+    <div class="qa-btn" onclick="quickAction('STOP','Stop')"><div class="qa-icon">🛑</div><div class="qa-label">Stop</div><div class="qa-desc">Halt all movement</div></div>
+    <div class="qa-btn" onclick="quickAction('PATROL_START','Start patrol')"><div class="qa-icon">🔄</div><div class="qa-label">Start patrol</div><div class="qa-desc">Begin auto-route</div></div>
+    <div class="qa-btn" onclick="quickAction('CAM_PHOTO','Take photo')"><div class="qa-icon">📸</div><div class="qa-label">Take photo</div><div class="qa-desc">Capture current view</div></div>
+    <div class="qa-btn" onclick="quickAction('WAVE','Wave')"><div class="qa-icon">🤖</div><div class="qa-label">Wave</div><div class="qa-desc">Friendly gesture</div></div>
+  <div class="qa-btn" onclick="goTo('page-music');loadSongs()" style="grid-column:span 2"><div class="qa-icon">🎵</div><div class="qa-label">Music Player</div><div class="qa-desc">Play songs from Pi</div></div>
+  </div><!-- close qa-grid -->
+  <div id="qa-feedback" style="text-align:center;font-size:13px;color:var(--purple3);padding:0 20px;min-height:24px"></div>
+</div><!-- close page-quickactions -->
+  <div id="qa-feedback" style="text-align:center;font-size:13px;color:var(--purple3);padding:0 20px;min-height:24px"></div>
+
+<!-- CONTROL -->
+<div class="page" id="page-control">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">CONTROL</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="dpad-wrap">
+    <div class="slabel">MOVEMENT</div>
+    <div class="dpad">
+      <div class="dp-empty"></div>
+      <div class="dp" onpointerdown="pressDir('FORWARD','dp-fwd')" onpointerup="releaseDir()" id="dp-fwd">↑</div>
+      <div class="dp-empty"></div>
+      <div class="dp" onpointerdown="pressDir('LEFT','dp-left')" onpointerup="releaseDir()" id="dp-left">←</div>
+      <div class="dp dp-stop" onpointerdown="sendCmd('STOP')">STOP</div>
+      <div class="dp" onpointerdown="pressDir('RIGHT','dp-right')" onpointerup="releaseDir()" id="dp-right">→</div>
+      <div class="dp-empty"></div>
+      <div class="dp" onpointerdown="pressDir('BACKWARD','dp-bwd')" onpointerup="releaseDir()" id="dp-bwd">↓</div>
+      <div class="dp-empty"></div>
+    </div>
+    <div class="speed-row">
+      <span style="font-size:12px;color:var(--text3);min-width:44px">Speed</span>
+      <input type="range" min="1" max="10" value="5" step="1" oninput="speedChange(this.value)"/>
+      <span class="speed-val" id="speed-val">5</span>
+    </div>
+    <div style="width:100%;height:1px;background:var(--border)"></div>
+    <div class="slabel">LAST COMMAND</div>
+    <div class="status-strip" style="width:100%">
+      <div class="si"><span class="si-label">SENT</span><span class="si-val info" id="ctrl-cmd">—</span></div>
+      <div class="si"><span class="si-label">SPEED</span><span class="si-val ok" id="ctrl-speed">5</span></div>
+      <div class="si"><span class="si-label">ARDUINO</span><span class="si-val" id="ctrl-arduino" style="color:var(--text3)">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TALK -->
+<div class="page" id="page-talk">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">TALK</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="talk-section">
+    <div class="talk-card">
+      <div class="tch">
+        <div class="tci" style="background:#7c3aed22">🤖</div>
+        <div><div class="tct">Command ZYROS</div><div class="tcs">Give movement or system commands</div></div>
+      </div>
+      <div class="bubble" id="cmd-transcript">Tap mic and say a command...</div>
+      <button class="mic-btn" id="cmd-mic" onclick="toggleMic('cmd')">🎤</button>
+      <div class="bubble" id="cmd-response" style="display:none"></div>
+    </div>
+    <div class="talk-card">
+      <div class="tch">
+        <div class="tci" style="background:#06b6d422">✨</div>
+        <div><div class="tct">AI Assistant</div><div class="tcs">Ask anything — Zyro answers on the robot speaker</div></div>
+      </div>
+      <div class="bubble" id="ai-transcript">Tap mic and ask anything...</div>
+      <button class="mic-btn" id="ai-mic" onclick="toggleMic('ai')">🎤</button>
+      <div class="bubble ai" id="ai-response" style="display:none"></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;font-size:12px;color:var(--text3);line-height:1.7">
+      💡 <strong style="color:var(--text2)">Tip:</strong> You can say <em style="color:var(--purple3)">"go to living room"</em> or <em style="color:var(--purple3)">"come here"</em> and Zyro will navigate automatically if spots are saved in Travel.
+    </div>
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div class="page" id="page-camera">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">CAMERA</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="cam-wrap">
+    <div class="cam-feed" id="cam-feed">
+      <img id="cam-img" src="" alt="feed"/>
+      <div id="cam-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:40px;opacity:.3">📷</div>
+        <span>Pi camera not connected yet</span>
+        <span style="font-size:11px;color:var(--text3)">Stream appears here when connected</span>
+      </div>
+    </div>
+    <div class="cam-controls">
+      <div class="cam-btn" onclick="sendCmd('CAM_PHOTO')">📸 Capture</div>
+      <div class="cam-btn" id="stream-btn" onclick="toggleStream()">▶ Start stream</div>
+      <div class="cam-btn" onclick="sendCmd('CAM_LEFT')">⬅ Pan left</div>
+      <div class="cam-btn" onclick="sendCmd('CAM_RIGHT')">➡ Pan right</div>
+    </div>
+  </div>
+</div>
+<!-- TRAVEL -->
+<div class="page" id="page-travel">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">TRAVEL</div>
+    <div style="width:60px"></div>
+  </div>
+
+  <div class="travel-wrap">
+
+    <!-- ENVIRONMENTS -->
+    <div class="env-tabs" id="env-tabs">
+    </div>
+
+    <!-- MAP MODES -->
+    <div class="map-mode-strip">
+      <div class="map-mode-btn active" id="mode-navigate"
+        onclick="setMapMode('navigate')">
+        🎯 Navigate
+      </div>
+
+      <div class="map-mode-btn" id="mode-pin"
+        onclick="setMapMode('pin')">
+        📍 Drop pin
+      </div>
+
+      <div class="map-mode-btn" id="mode-mark"
+        onclick="setMapMode('mark')">
+        ✏️ Mark spot
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="map-container" id="map-container" onclick="mapTap(event)">
+
+      <img class="map-img"
+        id="map-bg-img"
+        src=""
+        alt="blueprint"/>
+
+      <div class="map-grid-bg"></div>
+
+      <div class="map-label-text"
+        id="map-env-label">
+        HOME
+      </div>
+
+      <div class="map-bot"
+        id="bot-marker"
+        style="left:50%;top:50%">
+      </div>
+
+      <div id="map-dots-layer"></div>
+
+    </div>
+
+    <!-- BLUEPRINT -->
+    <input
+      type="file"
+      id="blueprint-upload"
+      accept="image/*"
+      style="display:none"
+      onchange="loadBlueprint(event)"
+    />
+
+    <div class="upload-btn"
+      onclick="document.getElementById('blueprint-upload').click()">
+      🖼️ Upload blueprint / floor plan
+    </div>
+
+    <div id="map-mode-hint"
+      style="
+      font-size:11px;
+      color:var(--text3);
+      text-align:center;
+      padding:4px 0">
+      Tap anywhere to navigate
+    </div>
+
+    <!-- SPOTS -->
+    <div class="spot-list">
+
+      <div class="slabel">SAVED SPOTS</div>
+
+      <div id="spot-list-container"></div>
+
+      <button class="add-spot-btn"
+        onclick="promptAddSpot()">
+        + Save current location
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">SETTINGS</div>
+    <div style="width:60px"></div>
+  </div>
+
+  <div class="settings-wrap">
+
+    <!-- CONNECTION -->
+    <div class="settings-group">
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">ZYROS IP address</div>
+          <div class="settings-row-desc">Raspberry Pi local IP</div>
+        </div>
+
+        <input class="settings-inp" id="set-ip" value="192.168.29.195"/>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Port</div>
+          <div class="settings-row-desc">WebSocket server port</div>
+        </div>
+
+        <input class="settings-inp" id="set-port" value="5000" style="max-width:80px"/>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Auto-connect</div>
+          <div class="settings-row-desc">Connect on app startup</div>
+        </div>
+
+        <button class="toggle" id="tog-autoconn"></button>
+      </div>
+
+    </div>
+
+    <!-- AI + VOICE -->
+    <div class="settings-group">
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">API key</div>
+          <div class="settings-row-desc">Stored locally on device</div>
+        </div>
+        <input class="settings-inp" id="ai-key" type="password" placeholder="gsk_..." style="max-width:150px"/>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Voice response</div>
+          <div class="settings-row-desc">Speak AI responses aloud</div>
+        </div>
+
+        <button class="toggle" id="tog-voice"></button>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Haptic feedback</div>
+          <div class="settings-row-desc">Phone vibration on taps</div>
+        </div>
+
+        <button class="toggle" id="tog-haptic"></button>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">AI typing animation</div>
+          <div class="settings-row-desc">Animated AI text reveal</div>
+        </div>
+
+        <button class="toggle" id="tog-typing"></button>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Wake sound</div>
+          <div class="settings-row-desc">Play sound when mic opens</div>
+        </div>
+
+        <button class="toggle" id="tog-sound"></button>
+      </div>
+
+    </div>
+
+    <!-- ROBOT -->
+    <div class="settings-group">
+
+    
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Turn calibration</div>
+          <div class="settings-row-desc">Milliseconds per 90°</div>
+        </div>
+
+        <input class="settings-inp" id="set-turn" value="800" type="number" style="max-width:90px"/>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Low power mode</div>
+          <div class="settings-row-desc">Reduce UI effects</div>
+        </div>
+
+        <button class="toggle off" id="tog-lowpower"></button>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Ambient glow</div>
+          <div class="settings-row-desc">Animated neon effects</div>
+        </div>
+
+        <button class="toggle" id="tog-glow"></button>
+      </div>
+
+    </div>
+
+    <!-- ADVANCED -->
+    <div class="settings-group">
+
+      <div class="settings-row settings-link" onclick="goTo('page-logs')">
+        <div>
+          <div class="settings-row-label">View logs</div>
+          <div class="settings-row-desc">System activity history</div>
+        </div>
+
+        <span style="color:var(--purple3);font-size:18px">›</span>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Clear saved spots</div>
+          <div class="settings-row-desc">Delete all navigation spots</div>
+        </div>
+
+        <button class="btn btn-outline"
+          onclick="clearAllSpots()"
+          style="font-size:12px;padding:6px 12px;color:var(--red);border-color:#ef444430">
+          Clear
+        </button>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Developer mode</div>
+          <div class="settings-row-desc">Extra debug information</div>
+        </div>
+
+        <button class="toggle off" id="tog-dev"></button>
+      </div>
+
+    </div>
+
+    <button class="btn btn-purple btn-full" onclick="saveSettings()">
+      Save and reconnect
+    </button>
+
+    <div style="
+      text-align:center;
+      font-size:10px;
+      color:var(--text3);
+      padding:10px;
+      letter-spacing:1px
+    ">
+      ZYROS OS v1.0
+    </div>
+
+  </div>
+</div>
+
+<!-- SYSTEM -->
+<div class="page" id="page-system">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">SYSTEM</div>
+    <button onclick="sendCmd('SYSTEM_STATUS')" style="background:none;border:none;color:var(--purple3);font-size:13px;cursor:pointer;padding:4px">↻ Refresh</button>
+  </div>
+  <div class="system-wrap">
+    <div class="sys-grid">
+      <div class="sys-card">
+        <div class="sys-card-icon">🔋</div>
+        <div class="sys-card-label">BATTERY</div>
+        <div class="sys-card-val ok" id="sys-battery">—</div>
+        <div class="sys-bar"><div class="sys-bar-fill" id="sys-battery-bar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--text3)" id="sys-battery-sub">Waiting...</div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-card-icon">🌡️</div>
+        <div class="sys-card-label">CPU TEMP</div>
+        <div class="sys-card-val ok" id="sys-temp">—</div>
+        <div class="sys-bar"><div class="sys-bar-fill" id="sys-temp-bar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--text3)" id="sys-temp-sub">Waiting...</div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-card-icon">⚡</div>
+        <div class="sys-card-label">CPU USAGE</div>
+        <div class="sys-card-val ok" id="sys-cpu">—</div>
+        <div class="sys-bar"><div class="sys-bar-fill" id="sys-cpu-bar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--text3)" id="sys-cpu-sub">Waiting...</div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-card-icon">💾</div>
+        <div class="sys-card-label">MEMORY</div>
+        <div class="sys-card-val ok" id="sys-mem">—</div>
+        <div class="sys-bar"><div class="sys-bar-fill" id="sys-mem-bar" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--text3)" id="sys-mem-sub">Waiting...</div>
+      </div>
+    </div>
+    <div class="sys-row-card">
+      <div class="sys-row"><span class="sys-row-label">Uptime</span><span class="sys-row-val" id="sys-uptime">—</span></div>
+      <div class="sys-row"><span class="sys-row-label">IP address</span><span class="sys-row-val" id="sys-ip">—</span></div>
+      <div class="sys-row"><span class="sys-row-label">Disk free</span><span class="sys-row-val" id="sys-disk">—</span></div>
+      <div class="sys-row"><span class="sys-row-label">Last command</span><span class="sys-row-val" id="sys-lastcmd">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGS -->
+<div class="page" id="page-logs">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">LOGS</div>
+    <button onclick="clearLogs()" style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:4px">Clear</button>
+  </div>
+  <div class="logs-wrap" id="logs-container">
+    <div style="text-align:center;font-size:13px;color:var(--text3);padding:20px">No logs yet</div>
+  </div>
+</div>
+
+<!-- MUSIC PLAYER -->
+<div class="page" id="page-music">
+  <div style="position:relative;padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <button class="back-btn" onclick="goBack();stopSong()">← Back</button>
+    <div class="topbar-title">MUSIC</div>
+    <div style="width:60px"></div>
+  </div>
+
+  <!-- NOW PLAYING CARD -->
+  <div style="padding:0 20px 16px">
+    <div id="music-now-card" style="background:linear-gradient(135deg,#1a0a2e,#0d1a2e);border:1px solid #7c3aed44;border-radius:24px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px">
+      <div id="music-art" style="width:120px;height:120px;border-radius:20px;background:linear-gradient(135deg,#7c3aed33,#06b6d433);display:flex;align-items:center;justify-content:center;font-size:52px;border:1px solid #7c3aed44;position:relative;overflow:hidden">
+        🎵
+        <div id="music-art-glow" style="position:absolute;inset:0;background:radial-gradient(circle,#7c3aed22,transparent);opacity:0;transition:opacity .5s"></div>
+      </div>
+      <div style="text-align:center;width:100%">
+        <div id="music-now-title" style="font-size:16px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">No song selected</div>
+        <div id="music-now-sub" style="font-size:12px;color:var(--purple3);margin-top:4px">Select a track below</div>
+      </div>
+
+      <!-- PROGRESS BAR -->
+      <div style="width:100%;display:flex;flex-direction:column;gap:6px">
+        <div style="height:4px;background:var(--border2);border-radius:2px;overflow:hidden">
+          <div id="music-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--cyan));border-radius:2px;transition:width .5s linear"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span id="music-time-cur" style="font-size:10px;color:var(--text3)">0:00</span>
+          <span id="music-time-tot" style="font-size:10px;color:var(--text3)">0:00</span>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div style="display:flex;align-items:center;gap:20px">
+        <button onclick="prevSong()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">⏮</button>
+        <button id="music-play-btn" onclick="togglePlayPause()" style="background:var(--purple);border:none;border-radius:50%;width:60px;height:60px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px #7c3aed66">▶</button>
+        <button onclick="nextSong()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">⏭</button>
+      </div>
+
+      <!-- VOLUME -->
+      <div style="display:flex;align-items:center;gap:10px;width:100%">
+        <span style="font-size:14px">🔈</span>
+        <input type="range" min="0" max="100" value="80" id="music-volume" oninput="changeVolume(this.value)" style="flex:1;accent-color:var(--purple)"/>
+        <span style="font-size:14px">🔊</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACK LIST -->
+  <div style="padding:0 20px 30px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="slabel">YOUR TRACKS</div>
+      <button onclick="loadSongs()" style="background:none;border:none;color:var(--purple3);font-size:12px;cursor:pointer">↻ Refresh</button>
+    </div>
+    <div id="music-track-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;font-size:13px;color:var(--text3);padding:20px">
+        Connect to Pi to load tracks
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-toast" id="nav-toast">Navigating...</div>
+</div>
+
+<script>
+
+let ws=null;
+let isConnected=false;
+
+let pageStack=['page-home'];
+
+let logs=[];
+
+let streamActive=false;
+
+let mapMode='navigate';
+
+let botPos={
+  x:50,
+  y:50
+};
+
+
+// ─────────────────────────────
+// ENVIRONMENTS
+// ─────────────────────────────
+
+let environments=[
+
+  {
+    name:'Home',
+    blueprint:'',
+    scale:1,
+    spots:[]
+  }
+
+];
+
+let currentEnv=0;
+
+
+// ─────────────────────────────
+// SETTINGS
+// ─────────────────────────────
+
+let settings={
+
+  haptic:true,
+  voice:true,
+  typing:true,
+  sound:true,
+  glow:true,
+  lowpower:false,
+  autoconn:true
+
+};
+
+
+// ─────────────────────────────
+// NAVIGATION
+// ─────────────────────────────
+
+let systemPollInterval = null;
+
+function goTo(id){
+
+  const cur=document.getElementById(
+    pageStack[pageStack.length-1]
+  );
+
+  cur.classList.add('behind');
+  cur.classList.remove('active');
+
+  document.getElementById(id)
+    .classList.add('active');
+
+  pageStack.push(id);
+
+  clearInterval(systemPollInterval);
+
+  if(id === 'page-system'){
+    sendSystemRequest();
+    systemPollInterval = setInterval(sendSystemRequest, 5000);
+  }
+
+}
+
+function sendSystemRequest(){
+  if(ws && isConnected){
+    ws.send(JSON.stringify({type:'system_status'}));
+  }
+}
+
+function goBack(){
+
+  if(pageStack.length<=1)return;
+
+  clearInterval(systemPollInterval);
+
+  const cur=document.getElementById(
+    pageStack.pop()
+  );
+
+  cur.classList.remove('active','behind');
+
+  const prev=document.getElementById(
+    pageStack[pageStack.length-1]
+  );
+
+  prev.classList.remove('behind');
+  prev.classList.add('active');
+
+}
+// ─────────────────────────────
+// HAPTIC
+// ─────────────────────────────
+
+function haptic(ms=20){
+
+  if(!settings.haptic)return;
+
+  if(navigator.vibrate){
+
+    navigator.vibrate(ms);
+
+  }
+
+}
+
+
+// ─────────────────────────────
+// LOGS
+// ─────────────────────────────
+
+function addLog(msg,type='info'){
+
+  logs.unshift({
+
+    msg,
+    type,
+    time:new Date().toLocaleTimeString()
+
+  });
+
+  if(logs.length>100){
+
+    logs.pop();
+
+  }
+
+  renderLogs();
+
+}
+
+function renderLogs(){
+
+  const container=document.getElementById(
+    'logs-container'
+  );
+
+  if(!container)return;
+
+  if(logs.length===0){
+
+    container.innerHTML=`
+      <div style="
+      text-align:center;
+      color:var(--text3);
+      padding:20px">
+      No logs yet
+      </div>
+    `;
+
+    return;
+
+  }
+
+  container.innerHTML=logs.map(l=>`
+
+    <div class="log-entry">
+
+      <div class="log-time">
+        ${l.time}
+      </div>
+
+      <div class="log-msg ${l.type}">
+        ${l.msg}
+      </div>
+
+    </div>
+
+  `).join('');
+
+}
+
+function clearLogs(){
+
+  logs=[];
+
+  renderLogs();
+
+}
+
+
+// ─────────────────────────────
+// CONNECTION
+// ─────────────────────────────
+
+function connect(){
+
+  const ip=document.getElementById('set-ip').value;
+
+  addLog('Connecting to '+ip,'info');
+
+  try{
+
+    ws=new WebSocket(
+      'ws://'+ip+':5000/ws'
+    );
+
+    ws.onopen=()=>{
+
+      isConnected=true;
+
+      setConnection(true);
+
+      addLog('Connected','ok');
+
+    };
+    ws.onmessage=(e)=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(d.type==='system') updateSystem(d.data);
+
+        if(d.type==='ai_display'){
+          const reply=d.text||'';
+          if(reply){
+            document.getElementById('ai-response').textContent=reply;
+            document.getElementById('ai-response').style.display='block';
+            addLog('ZYROS replied','ok');
+          }
+        }
+
+        if(d.type==='ai_response'){
+          const reply=d.text||d.response||'';
+          if(reply){
+            document.getElementById('ai-response').textContent=reply;
+            document.getElementById('ai-response').style.display='block';
+            addLog('ZYROS replied','ok');
+            speakText(reply);
+          }
+        }
+
+        if(d.type==='song_list'){
+          songList=d.songs;
+          renderTrackList();
+        }
+      }catch(err){
+        addLog('Message error: '+err.message,'err');
+      }
+    };
+
+    ws.onclose=()=>{
+      isConnected=false;
+      setConnection(false);
+      addLog('Disconnected','err');
+    };
+
+    ws.onerror=()=>{
+      addLog('WebSocket error','err');
+    };
+
+  }catch(err){
+    addLog(err.message,'err');
+  }
+}
+
+function reconnect(){
+  addLog('Reconnecting...','info');
+  if(ws){
+    try{ ws.close(); }catch(e){}
+  }
+  setTimeout(connect, 500);
+}
+
+function setConnection(state){
+
+  const dot=document.getElementById('conn-dot');
+  const txt=document.getElementById('conn-text');
+
+  const signal=document.getElementById('stat-signal');
+  const status=document.getElementById('stat-status');
+
+  if(state){
+
+    dot.classList.add('on');
+
+    txt.textContent='Online';
+
+    signal.textContent='LIVE';
+    signal.className='si-val ok';
+
+    status.textContent='READY';
+    status.className='si-val ok';
+
+  }else{
+
+    dot.classList.remove('on');
+
+    txt.textContent='Offline';
+
+    signal.textContent='OFFLINE';
+    signal.className='si-val err';
+
+    status.textContent='IDLE';
+    status.className='si-val err';
+
+  }
+
+}
+
+
+// ─────────────────────────────
+// SEND COMMANDS
+// ─────────────────────────────
+
+function sendCmd(cmd){
+
+  haptic();
+
+  document.getElementById(
+    'ctrl-cmd'
+  ).textContent=cmd;
+
+  addLog('CMD → '+cmd,'info');
+
+  if(ws && isConnected){
+
+    ws.send(JSON.stringify({
+
+      type:'command',
+      command:cmd
+
+    }));
+
+  }
+
+}
+
+let songList = [];
+let currentSongIndex = -1;
+let isPlaying = false;
+let progressInterval = null;
+let progressSeconds = 0;
+let totalSeconds = 0;
+
+function loadSongs(){
+  if(!ws || !isConnected){
+    document.getElementById('music-track-list').innerHTML='<div style="text-align:center;font-size:13px;color:var(--red);padding:20px">Not connected to Pi</div>';
+    return;
+  }
+  document.getElementById('music-track-list').innerHTML='<div style="text-align:center;font-size:13px;color:var(--text3);padding:20px">Loading...</div>';
+  ws.send(JSON.stringify({type:'get_songs'}));
+}
+
+function renderTrackList(){
+  const list = document.getElementById('music-track-list');
+  if(songList.length === 0){
+    list.innerHTML='<div style="text-align:center;font-size:13px;color:var(--text3);padding:20px">No songs found in /home/pi/music</div>';
+    return;
+  }
+  list.innerHTML = songList.map((s,i) => `
+    <div onclick="playSongByIndex(${i})" id="track-${i}" style="
+      background:${i===currentSongIndex?'linear-gradient(135deg,#1a0a2e,#0d1a2e)':'var(--bg2)'};
+      border:1px solid ${i===currentSongIndex?'#7c3aed66':'var(--border)'};
+      border-radius:14px;padding:12px 14px;
+      display:flex;align-items:center;gap:12px;cursor:pointer;
+      transition:all .2s
+    ">
+      <div style="
+        width:38px;height:38px;border-radius:10px;
+        background:${i===currentSongIndex?'var(--purple)':'var(--bg3)'};
+        display:flex;align-items:center;justify-content:center;
+        font-size:${i===currentSongIndex?'16px':'18px'};
+        flex-shrink:0;border:1px solid var(--border2)
+      ">${i===currentSongIndex && isPlaying ? '▶' : '🎵'}</div>
+      <div style="flex:1;overflow:hidden">
+        <div style="font-size:13px;font-weight:${i===currentSongIndex?'700':'500'};color:${i===currentSongIndex?'var(--purple3)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.replace(/\.(mp3|wav|ogg|flac)$/i,'')}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${s.split('.').pop().toUpperCase()}</div>
+      </div>
+      ${i===currentSongIndex?'<div style="width:8px;height:8px;border-radius:50%;background:var(--purple);box-shadow:0 0 8px var(--purple)"></div>':''}
+    </div>
+  `).join('');
+}
+
+function playSongByIndex(i){
+  if(!ws || !isConnected) return;
+  currentSongIndex = i;
+  const song = songList[i];
+  isPlaying = true;
+  haptic();
+  ws.send(JSON.stringify({type:'play_song', song:song}));
+  const cleanName = song.replace(/\.(mp3|wav|ogg|flac)$/i,'');
+  document.getElementById('music-now-title').textContent = cleanName;
+  document.getElementById('music-now-sub').textContent = song.split('.').pop().toUpperCase() + ' · Pi Library';
+  document.getElementById('music-play-btn').textContent = '⏸';
+  document.getElementById('music-art-glow').style.opacity = '1';
+  startProgressSimulation();
+  renderTrackList();
+  addLog('Playing: '+song,'ok');
+}
+
+function playSong(song){
+  const i = songList.indexOf(song);
+  if(i >= 0) playSongByIndex(i);
+}
+
+function stopSong(){
+  if(!ws || !isConnected) return;
+  ws.send(JSON.stringify({type:'stop_song'}));
+  isPlaying = false;
+  document.getElementById('music-play-btn').textContent = '▶';
+  document.getElementById('music-art-glow').style.opacity = '0';
+  document.getElementById('music-now-title').textContent = 'No song selected';
+  document.getElementById('music-now-sub').textContent = 'Select a track below';
+  clearInterval(progressInterval);
+  document.getElementById('music-progress-bar').style.width = '0%';
+  document.getElementById('music-time-cur').textContent = '0:00';
+  renderTrackList();
+  haptic();
+}
+
+function togglePlayPause(){
+  if(currentSongIndex < 0) return;
+  if(isPlaying){
+    isPlaying = false;
+    document.getElementById('music-play-btn').textContent = '▶';
+    document.getElementById('music-art-glow').style.opacity = '0';
+    clearInterval(progressInterval);
+    if(ws && isConnected) ws.send(JSON.stringify({type:'stop_song'}));
+  } else {
+    playSongByIndex(currentSongIndex);
+  }
+}
+
+function nextSong(){
+  if(songList.length === 0) return;
+  const next = (currentSongIndex + 1) % songList.length;
+  playSongByIndex(next);
+}
+
+function prevSong(){
+  if(songList.length === 0) return;
+  const prev = (currentSongIndex - 1 + songList.length) % songList.length;
+  playSongByIndex(prev);
+}
+
+function changeVolume(v){
+  if(ws && isConnected){
+    ws.send(JSON.stringify({type:'set_volume', volume:v}));
+  }
+}
+
+function startProgressSimulation(){
+  clearInterval(progressInterval);
+  progressSeconds = 0;
+  totalSeconds = 180;
+  document.getElementById('music-time-tot').textContent = formatTime(totalSeconds);
+  progressInterval = setInterval(()=>{
+    if(!isPlaying) return;
+    progressSeconds++;
+    if(progressSeconds >= totalSeconds){ clearInterval(progressInterval); nextSong(); return; }
+    const pct = (progressSeconds/totalSeconds)*100;
+    document.getElementById('music-progress-bar').style.width = pct+'%';
+    document.getElementById('music-time-cur').textContent = formatTime(progressSeconds);
+  }, 1000);
+}
+
+function formatTime(s){
+  const m = Math.floor(s/60);
+  const sec = s%60;
+  return m+':'+(sec<10?'0':'')+sec;
+}
+// ─────────────────────────────
+// QUICK ACTIONS
+// ─────────────────────────────
+
+function quickAction(cmd,label){
+
+  sendCmd(cmd);
+
+  const q=document.getElementById(
+    'qa-feedback'
+  );
+
+  q.textContent=label+' executed';
+
+  setTimeout(()=>{
+
+    q.textContent='';
+
+  },2000);
+
+}
+
+
+// ─────────────────────────────
+// CONTROL
+// ─────────────────────────────
+
+function pressDir(cmd,id){
+
+  haptic();
+
+  document.getElementById(id)
+    .classList.add('pressed');
+
+  sendCmd(cmd);
+
+}
+
+function releaseDir(){
+
+  document.querySelectorAll('.dp')
+    .forEach(el=>{
+
+      el.classList.remove('pressed');
+
+    });
+
+  sendCmd('STOP');
+
+}
+
+function speedChange(v){
+
+  document.getElementById(
+    'speed-val'
+  ).textContent=v;
+
+  document.getElementById(
+    'ctrl-speed'
+  ).textContent=v;
+
+  sendCmd('SPEED:'+v);
+
+}
+
+
+// ─────────────────────────────
+// CAMERA
+// ─────────────────────────────
+
+function toggleStream(){
+
+  streamActive=!streamActive;
+
+  document.getElementById(
+    'stream-btn'
+  ).textContent=
+
+    streamActive
+    ?
+    '⏹ Stop stream'
+    :
+    '▶ Start stream';
+
+  sendCmd(
+
+    streamActive
+    ?
+    'CAM_STREAM_ON'
+    :
+    'CAM_STREAM_OFF'
+
+  );
+
+}
+
+
+// ─────────────────────────────
+// MAP MODES
+// ─────────────────────────────
+
+function setMapMode(mode){
+
+  mapMode=mode;
+
+  document.querySelectorAll(
+    '.map-mode-btn'
+  ).forEach(el=>{
+
+    el.classList.remove('active');
+
+  });
+
+  document.getElementById(
+    'mode-'+mode
+  ).classList.add('active');
+
+  const hint=document.getElementById(
+    'map-mode-hint'
+  );
+
+  if(mode==='navigate'){
+
+    hint.textContent=
+      'Tap anywhere to navigate';
+
+  }
+
+  if(mode==='pin'){
+
+    hint.textContent=
+      'Tap to drop temporary pin';
+
+  }
+
+  if(mode==='mark'){
+
+    hint.textContent=
+      'Tap to save a named spot';
+
+  }
+
+}
+
+
+// ─────────────────────────────
+// MAP TAP
+// ─────────────────────────────
+
+function mapTap(e){
+
+  const rect=e.currentTarget
+    .getBoundingClientRect();
+
+  const x=((e.clientX-rect.left)
+    /rect.width)*100;
+
+  const y=((e.clientY-rect.top)
+    /rect.height)*100;
+
+  if(mapMode==='navigate'){
+
+    navigateTo(x,y);
+
+  }
+
+  else if(mapMode==='pin'){
+
+    dropPin(x,y);
+
+  }
+
+  else if(mapMode==='mark'){
+
+    saveSpotAt(x,y);
+
+  }
+
+}
+
+
+// ─────────────────────────────
+// NAVIGATION
+// ─────────────────────────────
+
+function navigateTo(x,y){
+
+  botPos.x=x;
+  botPos.y=y;
+
+  const bot=document.getElementById(
+    'bot-marker'
+  );
+
+  bot.style.left=x+'%';
+  bot.style.top=y+'%';
+
+  sendCmd(
+    'GOTO:'+x.toFixed(1)+','+y.toFixed(1)
+  );
+
+  const toast=document.getElementById(
+    'nav-toast'
+  );
+
+  toast.textContent=
+    'Navigating to target';
+
+  toast.classList.add('show');
+
+  setTimeout(()=>{
+
+    toast.classList.remove('show');
+
+  },2000);
+
+}
+
+
+// ─────────────────────────────
+// DROP PIN
+// ─────────────────────────────
+
+function dropPin(x,y){
+
+  const layer=document.getElementById(
+    'map-dots-layer'
+  );
+
+  const pin=document.createElement('div');
+
+  pin.className='map-dot target-dot';
+
+  pin.style.left=x+'%';
+  pin.style.top=y+'%';
+
+  pin.style.background='var(--amber)';
+  pin.style.border='2px solid #fde68a';
+
+  layer.appendChild(pin);
+
+  setTimeout(()=>{
+
+    pin.remove();
+
+  },5000);
+
+}
+
+
+// ─────────────────────────────
+// SPOTS
+// ─────────────────────────────
+
+function saveSpotAt(x,y){
+
+  const name=prompt(
+    'Spot name?'
+  );
+
+  if(!name)return;
+
+  environments[currentEnv]
+    .spots.push({
+
+      name,
+      x,
+      y
+
+    });
+
+  renderSpots();
+
+  addLog(
+    'Saved spot '+name,
+    'ok'
+  );
+
+}
+
+function renderSpots(){
+
+  const env=environments[currentEnv];
+
+  const container=document.getElementById(
+    'spot-list-container'
+  );
+
+  const layer=document.getElementById(
+    'map-dots-layer'
+  );
+
+  container.innerHTML='';
+  layer.innerHTML='';
+
+  env.spots.forEach((s,i)=>{
+
+    // MAP DOT
+    const dot=document.createElement('div');
+
+    dot.className='map-dot custom-dot';
+
+    dot.style.left=s.x+'%';
+    dot.style.top=s.y+'%';
+
+    dot.innerHTML=`
+      <div class="dot-lbl">
+        ${s.name}
+      </div>
+    `;
+
+    layer.appendChild(dot);
+
+    // LIST
+    container.innerHTML+=`
+
+      <div class="spot-item">
+
+        <div>
+
+          <div class="spot-name">
+            ${s.name}
+          </div>
+
+          <div class="spot-desc">
+            ${s.x.toFixed(0)}% ,
+            ${s.y.toFixed(0)}%
+          </div>
+
+        </div>
+
+        <div class="spot-actions">
+
+          <button class="spot-go"
+            onclick="gotoSpot(${i})">
+            Go
+          </button>
+
+          <button class="spot-del"
+            onclick="deleteSpot(${i})">
+            Del
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+  });
+
+}
+
+function gotoSpot(i){
+
+  const s=environments[currentEnv]
+    .spots[i];
+
+  navigateTo(s.x,s.y);
+
+}
+
+function deleteSpot(i){
+
+  environments[currentEnv]
+    .spots.splice(i,1);
+
+  renderSpots();
+
+}
+
+
+// ─────────────────────────────
+// BLUEPRINTS
+// ─────────────────────────────
+
+function loadBlueprint(event){
+
+  const file=event.target.files[0];
+
+  if(!file)return;
+
+  const reader=new FileReader();
+
+  reader.onload=function(e){
+
+    const img=document.getElementById(
+      'map-bg-img'
+    );
+
+    img.src=e.target.result;
+
+    img.style.display='block';
+
+    environments[currentEnv]
+      .blueprint=e.target.result;
+
+    const scale=prompt(
+      'Enter blueprint scale\n1 pixel = how many cm?',
+      '1'
+    );
+
+    if(scale){
+
+      environments[currentEnv]
+        .scale=parseFloat(scale);
+
+    }
+
+    addLog(
+      'Blueprint loaded',
+      'ok'
+    );
+
+  };
+
+  reader.readAsDataURL(file);
+
+}
+
+
+// ─────────────────────────────
+// ENVIRONMENTS
+// ─────────────────────────────
+
+function renderEnvTabs(){
+
+  const tabs=document.getElementById(
+    'env-tabs'
+  );
+
+  tabs.innerHTML='';
+
+  environments.forEach((env,i)=>{
+
+    tabs.innerHTML+=`
+
+      <div class="
+      env-tab
+      ${i===currentEnv?'active':''}
+      "
+      onclick="switchEnv(${i})">
+
+        🏠 ${env.name}
+
+      </div>
+
+    `;
+
+  });
+
+  tabs.innerHTML+=`
+
+    <div class="env-tab add"
+      onclick="addEnvironment()">
+
+      + Add area
+
+    </div>
+
+  `;
+
+}
+
+function addEnvironment(){
+
+  const name=prompt(
+    'Area name?'
+  );
+
+  if(!name)return;
+
+  environments.push({
+
+    name,
+    blueprint:'',
+    scale:1,
+    spots:[]
+
+  });
+
+  renderEnvTabs();
+
+}
+
+function switchEnv(i){
+
+  currentEnv=i;
+
+  renderEnvTabs();
+
+  const env=environments[i];
+
+  document.getElementById(
+    'map-env-label'
+  ).textContent=
+
+    env.name.toUpperCase();
+
+  const img=document.getElementById(
+    'map-bg-img'
+  );
+
+  if(env.blueprint){
+
+    img.src=env.blueprint;
+
+    img.style.display='block';
+
+  }else{
+
+    img.style.display='none';
+
+  }
+
+  renderSpots();
+
+}
+
+
+// ─────────────────────────────
+// SETTINGS TOGGLES
+// ─────────────────────────────
+
+document.querySelectorAll('.toggle')
+  .forEach(btn=>{
+
+    btn.addEventListener('click',()=>{
+
+      btn.classList.toggle('off');
+
+      haptic();
+
+    });
+
+  });
+
+
+// ─────────────────────────────
+// SAVE SETTINGS
+// ─────────────────────────────
+
+function saveSettings(){
+
+  settings.autoconn=
+    !document.getElementById('tog-autoconn')
+    .classList.contains('off');
+
+  localStorage.setItem('groq_key', document.getElementById('ai-key').value);
+
+  settings.voice=
+    !document.getElementById('tog-voice')
+    .classList.contains('off');
+
+  settings.haptic=
+    !document.getElementById('tog-haptic')
+    .classList.contains('off');
+
+  settings.typing=
+    !document.getElementById('tog-typing')
+    .classList.contains('off');
+
+  settings.sound=
+    !document.getElementById('tog-sound')
+    .classList.contains('off');
+
+  settings.glow=
+    !document.getElementById('tog-glow')
+    .classList.contains('off');
+
+  settings.lowpower=
+    !document.getElementById('tog-lowpower')
+    .classList.contains('off');
+
+  settings.autoconn=
+    !document.getElementById('tog-autoconn')
+    .classList.contains('off');
+
+  addLog(
+    'Settings saved',
+    'ok'
+  );
+
+}
+
+// ─────────────────────────────
+// MIC + AI
+// ─────────────────────────────
+
+let cmdListening=false,aiListening=false,recognition=null;
+
+function toggleMic(mode){
+  window.speechSynthesis.cancel();
+  if(mode==='cmd'&&cmdListening){stopMic();return;}
+  if(mode==='ai'&&aiListening){stopMic();return;}
+  startMic(mode);
+}
+
+function stopMic(){
+  if(recognition)recognition.stop();
+  cmdListening=false;aiListening=false;
+  document.getElementById('cmd-mic').className='mic-btn';
+  document.getElementById('ai-mic').className='mic-btn';
+  document.getElementById('cmd-mic').style.boxShadow='';
+  document.getElementById('ai-mic').style.boxShadow='';
+}
+
+function startMic(mode){
+  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){
+    addLog('Speech recognition not supported','err');return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.lang='en-IN';
+  recognition.continuous=false;
+  recognition.interimResults=true;
+  const micId=mode==='cmd'?'cmd-mic':'ai-mic';
+  const transId=mode==='cmd'?'cmd-transcript':'ai-transcript';
+  if(mode==='cmd')cmdListening=true;else aiListening=true;
+  document.getElementById(micId).className='mic-btn pressed listening';document.getElementById(micId).className='mic-btn listening';
+  document.getElementById(transId).textContent='Listening...';
+  recognition.onresult=(e)=>{
+    let txt='';
+    for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    document.getElementById(transId).textContent=txt;
+    if(e.results[e.results.length-1].isFinal){
+      if(mode==='cmd'){
+        sendCmd('SPEECH:'+txt);
+        document.getElementById('cmd-response').textContent='Command sent to ZYROS';
+        document.getElementById('cmd-response').style.display='block';
+      }else{
+        callGroqDirect(txt);
+      }
+    }
+  };
+  recognition.onend=()=>{
+    cmdListening=false;aiListening=false;
+    document.getElementById(micId).className='mic-btn';
+  };
+  recognition.onerror=(e)=>{addLog('Mic error: '+e.error,'err');stopMic();};
+  recognition.start();
+}
+
+async function callGroqDirect(text){
+  document.getElementById('ai-response').textContent='Thinking...';
+  document.getElementById('ai-response').style.display='block';
+  addLog('Asking AI: '+text,'info');
+
+  // If Pi is connected, send to Pi and let it handle Groq + espeak
+  if(ws && isConnected){
+    ws.send(JSON.stringify({type:'ask_text', text:text}));
+    addLog('Sent to ZYROS','info');
+    return;
+  }
+
+  // Otherwise call Groq directly from app
+  const key=document.getElementById('ai-key').value.trim()||localStorage.getItem('groq_key');
+  if(!key){
+    addLog('Add API key in Settings','err');
+    document.getElementById('ai-response').textContent='Please add your API key in Settings first.';
+    return;
+  }
+
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system',content:'You are ZYROS, a futuristic humanoid robot assistant. Reply concisely and intelligently.DONT use things like - dash hash and all if you want to say something like 2-3%say 2 to 3 percentnot not in short form'},
+          {role:'user',content:text}
+        ],
+        max_tokens:200
+      })
+    });
+    const d=await res.json();
+    if(d.error){addLog('AI error: '+d.error.message,'err');document.getElementById('ai-response').textContent='Error: '+d.error.message;return;}
+    const reply=d.choices[0].message.content;
+    document.getElementById('ai-response').textContent=reply;
+    addLog('AI replied','ok');
+    speakText(reply);
+  }catch(err){
+    addLog('AI error: '+err.message,'err');
+    document.getElementById('ai-response').textContent='Connection error.';
+  }
+}
+
+function speakText(text){
+  if(!settings.voice)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';
+  u.rate=1.0;
+  u.pitch=0.9;
+  window.speechSynthesis.speak(u);
+}
+
+function updateSystem(s){
+  if(s.cpu!=null){
+    const c=Math.round(s.cpu);
+    document.getElementById('sys-cpu').textContent=c+'%';
+    document.getElementById('sys-cpu').className='sys-card-val '+(c<70?'ok':c<90?'warn':'err');
+    document.getElementById('sys-cpu-bar').style.width=c+'%';
+    document.getElementById('sys-cpu-sub').textContent=c+'% used';
+  }
+  if(s.mem!=null){
+    const m=Math.round(s.mem);
+    document.getElementById('sys-mem').textContent=m+'%';
+    document.getElementById('sys-mem').className='sys-card-val '+(m<70?'ok':m<90?'warn':'err');
+    document.getElementById('sys-mem-bar').style.width=m+'%';
+    document.getElementById('sys-mem-sub').textContent=m+'% used';
+  }
+  if(s.temp!=null){
+    const t=Math.round(s.temp);
+    document.getElementById('sys-temp').textContent=t+'°C';
+    document.getElementById('sys-temp').className='sys-card-val '+(t<60?'ok':t<75?'warn':'err');
+    document.getElementById('sys-temp-bar').style.width=Math.min(100,t/80*100)+'%';
+    document.getElementById('sys-temp-sub').textContent=t<60?'Normal':(t<75?'Warm':'Hot');
+  }
+  if(s.uptime) document.getElementById('sys-uptime').textContent=s.uptime;
+  if(s.disk_free!=null) document.getElementById('sys-disk').textContent=s.disk_free+'GB free';
+}
+// ─────────────────────────────
+// INIT
+// ─────────────────────────────
+
+window.addEventListener('load',()=>{
+
+  renderLogs();
+
+  renderEnvTabs();
+
+  switchEnv(0);
+  const savedKey = localStorage.getItem('groq_key');
+  if (savedKey) document.getElementById('ai-key').value = savedKey;
+
+  if(settings.autoconn){
+
+    setTimeout(connect,1000);
+
+  }
+
+});
+
+</script>
+</body>
+</html>
