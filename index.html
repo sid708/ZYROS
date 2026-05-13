@@ -1208,20 +1208,12 @@ function stopSong(){
 }
 
 function togglePlayPause(){
-  if(spToken&&spDeviceId){
-    spPlaying
-      ?spFetch('PUT','https://api.spotify.com/v1/me/player/pause?device_id='+spDeviceId)
-      :spFetch('PUT','https://api.spotify.com/v1/me/player/play?device_id='+spDeviceId);
-    spPlaying=!spPlaying;
-    document.getElementById('music-play-btn').textContent=spPlaying?'⏸':'▶';
-    return;
-  }
+  if(spToken&&spDeviceId){spPlaying?spFetch('PUT','https://api.spotify.com/v1/me/player/pause'):spFetch('PUT','https://api.spotify.com/v1/me/player/play');spPlaying=!spPlaying;document.getElementById('music-play-btn').textContent=spPlaying?'⏸':'▶';return;}
   // fallback to Pi local
   if(currentSongIndex<0)return;
   if(isPlaying){isPlaying=false;document.getElementById('music-play-btn').textContent='▶';document.getElementById('music-art-glow').style.opacity='0';clearInterval(progressInterval);if(ws&&isConnected)ws.send(JSON.stringify({type:'stop_song'}));}
   else{playSongByIndex(currentSongIndex);}
 }
-
 function nextSong(){
   if(spToken&&spDeviceId){spFetch('POST','https://api.spotify.com/v1/me/player/next');return;}
   if(songList.length===0)return;playSongByIndex((currentSongIndex+1)%songList.length);
@@ -1996,48 +1988,50 @@ function updateSystem(s){
 
 function getClientId(){return localStorage.getItem('sp_client_id')||document.getElementById('spotify-client-id').value.trim();}
 function getRedirectUri(){return window.location.href.split('?')[0].split('#')[0];}
-async function spotifyLogin(){
+function spotifyLogin(){
   const clientId=getClientId();
-  if(!clientId){alert('Paste your Music Client ID in Settings first.');return;}
+  if(!clientId){alert('Paste your Spotify Client ID in Settings first.');return;}
   localStorage.setItem('sp_client_id',clientId);
-  const verifier=generateCodeVerifier(128);
-  const challenge=await generateCodeChallenge(verifier);
-  localStorage.setItem('sp_verifier',verifier);
-  const params=new URLSearchParams({response_type:'code',client_id:clientId,scope:SPOTIFY_SCOPES,redirect_uri:getRedirectUri(),code_challenge_method:'S256',code_challenge:challenge});
-  window.location.href='https://accounts.spotify.com/authorize?'+params.toString();
+  window.location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({response_type:'token',client_id:clientId,scope:SPOTIFY_SCOPES,redirect_uri:getRedirectUri(),show_dialog:'false'}).toString();
 }
-function generateCodeVerifier(length){
-  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-  let result='';for(let i=0;i<length;i++)result+=chars.charAt(Math.floor(Math.random()*chars.length));return result;
+function handleSpotifyCallback(){
+  const params=new URLSearchParams(window.location.hash.substring(1));
+  const token=params.get('access_token'),expires=params.get('expires_in');
+  if(token){spToken=token;localStorage.setItem('sp_token',token);localStorage.setItem('sp_token_expiry',Date.now()+parseInt(expires)*1000);window.history.replaceState(null,'',window.location.pathname);addLog('Music connected','ok');initSpotifySDK();}
 }
-async function generateCodeChallenge(verifier){
-  const data=new TextEncoder().encode(verifier);
-  const digest=await crypto.subtle.digest('SHA-256',data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
-async function handleSpotifyCallback(){
-  const params=new URLSearchParams(window.location.search);
-  const code=params.get('code');
-  if(!code)return;
-  const verifier=localStorage.getItem('sp_verifier');
-  const clientId=getClientId();
-  const body=new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:getRedirectUri(),client_id:clientId,code_verifier:verifier});
-  const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
-  const data=await r.json();
-  if(data.access_token){
-    spToken=data.access_token;
-    localStorage.setItem('sp_token',data.access_token);
-    localStorage.setItem('sp_token_expiry',Date.now()+data.expires_in*1000);
-    window.history.replaceState(null,'',window.location.pathname);
-    addLog('Music connected','ok');
-    initSpotifySDK();
-  }else{addLog('Music auth failed','err');}
-}
-
 function loadStoredToken(){
   const t=localStorage.getItem('sp_token'),exp=parseInt(localStorage.getItem('sp_token_expiry')||'0');
   if(t&&Date.now()<exp-60000){spToken=t;return true;}return false;
 }
+function initSpotifySDK(){
+  if(!spToken||document.getElementById('sp-sdk-script'))return;
+  const s=document.createElement('script');s.id='sp-sdk-script';s.src='https://sdk.scdn.co/spotify-player.js';document.head.appendChild(s);
+}
+window.onSpotifyWebPlaybackSDKReady=function(){
+  spPlayer=new Spotify.Player({name:'ZYROS',getOAuthToken:cb=>cb(spToken),volume:0.8});
+  spPlayer.addListener('ready',({device_id})=>{spDeviceId=device_id;localStorage.setItem('sp_device_id',device_id);addLog('Music ready','ok');spFetch('PUT','https://api.spotify.com/v1/me/player',{device_ids:[device_id],play:false});});
+  spPlayer.addListener('player_state_changed',state=>{
+    if(!state)return;
+    spPlaying=!state.paused;spDuration=state.duration;
+    if(!spSeeking)spPosition=state.position;
+    document.getElementById('music-play-btn').textContent=spPlaying?'⏸':'▶';
+    const t=state.track_window.current_track;
+    if(t){
+      document.getElementById('music-now-title').textContent=t.name;
+      document.getElementById('music-now-sub').textContent=t.artists.map(a=>a.name).join(', ');
+      document.getElementById('music-art-glow').style.opacity='1';
+      spCurrentUri=t.uri;
+      spDuration=state.duration;
+      document.getElementById('music-time-tot').textContent=msToTime(spDuration);
+      spRecentTracks=spRecentTracks.filter(r=>r.uri!==t.uri);
+      spRecentTracks.unshift({name:t.name,artist:t.artists.map(a=>a.name).join(', '),uri:t.uri});
+      if(spRecentTracks.length>20)spRecentTracks.pop();
+    }
+  });
+  spPlayer.addListener('authentication_error',()=>{spToken=null;localStorage.removeItem('sp_token');});
+  spPlayer.connect();
+  spPollInterval=setInterval(()=>{if(spPlaying&&!spSeeking){spPosition=Math.min(spPosition+1000,spDuration);const pct=(spPosition/spDuration)*100;document.getElementById('music-progress-bar').style.width=pct+'%';document.getElementById('music-time-cur').textContent=msToTime(spPosition);}},1000);
+};
 async function spFetch(method,url,body){
   if(!spToken)return null;
   const opts={method,headers:{Authorization:'Bearer '+spToken,'Content-Type':'application/json'}};
@@ -2067,25 +2061,9 @@ async function spSearch(){
 async function spPlayTrack(uri){
   haptic();
   if(!spToken){addLog('Connect music in Settings','err');return;}
-  
-  // Find Pi device
-  const devices=await spFetch('GET','https://api.spotify.com/v1/me/player/devices');
-  if(!devices||!devices.devices||!devices.devices.length){
-    addLog('Pi speaker not found','err');
-    alert('Raspotify not found. Make sure Pi is on and raspotify is running.');
-    return;
-  }
-  
-  // Find raspotify device
-  const piDevice=devices.devices.find(d=>d.name.toLowerCase().includes('raspotify'))||devices.devices[0];
-  spDeviceId=piDevice.id;
-  
-  // Transfer playback to Pi then play
-  await spFetch('PUT','https://api.spotify.com/v1/me/player',{device_ids:[spDeviceId],play:false});
+  if(!spDeviceId){addLog('Player loading, try again','warn');return;}
   await spFetch('PUT','https://api.spotify.com/v1/me/player/play',{uris:[uri],device_id:spDeviceId});
-  spPlaying=true;
-  document.getElementById('music-play-btn').textContent='⏸';
-  addLog('Playing on Pi speaker','ok');
+  spPlaying=true;document.getElementById('music-play-btn').textContent='⏸';
 }
 
 window.addEventListener('load',()=>{
@@ -2095,8 +2073,8 @@ window.addEventListener('load',()=>{
   renderEnvTabs();
 
   const savedCid=localStorage.getItem('sp_client_id');if(savedCid)document.getElementById('spotify-client-id').value=savedCid;
-if(window.location.search.includes('code=')){handleSpotifyCallback();}
-else if(loadStoredToken()){addLog('Music ready','ok');}
+if(window.location.hash.includes('access_token')){handleSpotifyCallback();}
+else if(loadStoredToken()){addLog('Music ready','ok');initSpotifySDK();}
 
   switchEnv(0);
   const savedKey = localStorage.getItem('groq_key');
