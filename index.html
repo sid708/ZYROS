@@ -1208,12 +1208,20 @@ function stopSong(){
 }
 
 function togglePlayPause(){
-  if(spToken&&spDeviceId){spPlaying?spFetch('PUT','https://api.spotify.com/v1/me/player/pause'):spFetch('PUT','https://api.spotify.com/v1/me/player/play');spPlaying=!spPlaying;document.getElementById('music-play-btn').textContent=spPlaying?'⏸':'▶';return;}
+  if(spToken&&spDeviceId){
+    spPlaying
+      ?spFetch('PUT','https://api.spotify.com/v1/me/player/pause?device_id='+spDeviceId)
+      :spFetch('PUT','https://api.spotify.com/v1/me/player/play?device_id='+spDeviceId);
+    spPlaying=!spPlaying;
+    document.getElementById('music-play-btn').textContent=spPlaying?'⏸':'▶';
+    return;
+  }
   // fallback to Pi local
   if(currentSongIndex<0)return;
   if(isPlaying){isPlaying=false;document.getElementById('music-play-btn').textContent='▶';document.getElementById('music-art-glow').style.opacity='0';clearInterval(progressInterval);if(ws&&isConnected)ws.send(JSON.stringify({type:'stop_song'}));}
   else{playSongByIndex(currentSongIndex);}
 }
+
 function nextSong(){
   if(spToken&&spDeviceId){spFetch('POST','https://api.spotify.com/v1/me/player/next');return;}
   if(songList.length===0)return;playSongByIndex((currentSongIndex+1)%songList.length);
@@ -2088,9 +2096,25 @@ async function spSearch(){
 async function spPlayTrack(uri){
   haptic();
   if(!spToken){addLog('Connect music in Settings','err');return;}
-  if(!spDeviceId){addLog('Player loading, try again','warn');return;}
+  
+  // Find Pi device
+  const devices=await spFetch('GET','https://api.spotify.com/v1/me/player/devices');
+  if(!devices||!devices.devices||!devices.devices.length){
+    addLog('Pi speaker not found','err');
+    alert('Raspotify not found. Make sure Pi is on and raspotify is running.');
+    return;
+  }
+  
+  // Find raspotify device
+  const piDevice=devices.devices.find(d=>d.name.toLowerCase().includes('raspotify'))||devices.devices[0];
+  spDeviceId=piDevice.id;
+  
+  // Transfer playback to Pi then play
+  await spFetch('PUT','https://api.spotify.com/v1/me/player',{device_ids:[spDeviceId],play:false});
   await spFetch('PUT','https://api.spotify.com/v1/me/player/play',{uris:[uri],device_id:spDeviceId});
-  spPlaying=true;document.getElementById('music-play-btn').textContent='⏸';
+  spPlaying=true;
+  document.getElementById('music-play-btn').textContent='⏸';
+  addLog('Playing on Pi speaker','ok');
 }
 
 window.addEventListener('load',()=>{
