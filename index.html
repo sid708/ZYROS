@@ -1988,17 +1988,44 @@ function updateSystem(s){
 
 function getClientId(){return localStorage.getItem('sp_client_id')||document.getElementById('spotify-client-id').value.trim();}
 function getRedirectUri(){return window.location.href.split('?')[0].split('#')[0];}
-function spotifyLogin(){
+async function spotifyLogin(){
   const clientId=getClientId();
-  if(!clientId){alert('Paste your Spotify Client ID in Settings first.');return;}
+  if(!clientId){alert('Paste your Music Client ID in Settings first.');return;}
   localStorage.setItem('sp_client_id',clientId);
-  window.location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({response_type:'token',client_id:clientId,scope:SPOTIFY_SCOPES,redirect_uri:getRedirectUri(),show_dialog:'false'}).toString();
+  const verifier=generateCodeVerifier(128);
+  const challenge=await generateCodeChallenge(verifier);
+  localStorage.setItem('sp_verifier',verifier);
+  const params=new URLSearchParams({response_type:'code',client_id:clientId,scope:SPOTIFY_SCOPES,redirect_uri:getRedirectUri(),code_challenge_method:'S256',code_challenge:challenge});
+  window.location.href='https://accounts.spotify.com/authorize?'+params.toString();
 }
-function handleSpotifyCallback(){
-  const params=new URLSearchParams(window.location.hash.substring(1));
-  const token=params.get('access_token'),expires=params.get('expires_in');
-  if(token){spToken=token;localStorage.setItem('sp_token',token);localStorage.setItem('sp_token_expiry',Date.now()+parseInt(expires)*1000);window.history.replaceState(null,'',window.location.pathname);addLog('Music connected','ok');initSpotifySDK();}
+function generateCodeVerifier(length){
+  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  let result='';for(let i=0;i<length;i++)result+=chars.charAt(Math.floor(Math.random()*chars.length));return result;
 }
+async function generateCodeChallenge(verifier){
+  const data=new TextEncoder().encode(verifier);
+  const digest=await crypto.subtle.digest('SHA-256',data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function handleSpotifyCallback(){
+  const params=new URLSearchParams(window.location.search);
+  const code=params.get('code');
+  if(!code)return;
+  const verifier=localStorage.getItem('sp_verifier');
+  const clientId=getClientId();
+  const body=new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:getRedirectUri(),client_id:clientId,code_verifier:verifier});
+  const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
+  const data=await r.json();
+  if(data.access_token){
+    spToken=data.access_token;
+    localStorage.setItem('sp_token',data.access_token);
+    localStorage.setItem('sp_token_expiry',Date.now()+data.expires_in*1000);
+    window.history.replaceState(null,'',window.location.pathname);
+    addLog('Music connected','ok');
+    initSpotifySDK();
+  }else{addLog('Music auth failed','err');}
+}
+
 function loadStoredToken(){
   const t=localStorage.getItem('sp_token'),exp=parseInt(localStorage.getItem('sp_token_expiry')||'0');
   if(t&&Date.now()<exp-60000){spToken=t;return true;}return false;
@@ -2073,7 +2100,7 @@ window.addEventListener('load',()=>{
   renderEnvTabs();
 
   const savedCid=localStorage.getItem('sp_client_id');if(savedCid)document.getElementById('spotify-client-id').value=savedCid;
-if(window.location.hash.includes('access_token')){handleSpotifyCallback();}
+if(window.location.search.includes('code=')){handleSpotifyCallback();}
 else if(loadStoredToken()){addLog('Music ready','ok');initSpotifySDK();}
 
   switchEnv(0);
