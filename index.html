@@ -313,8 +313,8 @@ input[type=range]{flex:1;accent-color:var(--purple)}
   <div class="topbar">
     <button class="back-btn" onclick="goBack()">← Back</button>
     <div class="topbar-title">TALK</div>
-    <div style="width:60px"></div>
-  </div>
+    <button style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:4px" onclick="speechId++;window.speechSynthesis.cancel()">⏹ Stop</button>
+</div>
   <div class="talk-section">
     <div class="talk-card">
       <div class="tch">
