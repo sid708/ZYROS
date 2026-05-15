@@ -1011,11 +1011,14 @@ function connect(){
         }
 
         if(d.type==='song_list'){
-    console.log('SONGS FROM PI:', JSON.stringify(d.songs));
     songList = d.songs.map(s => typeof s === 'object' ? s.name : s);
     songDurations = {};
-    d.songs.forEach(s => { if(s.duration) songDurations[s.name] = s.duration; });
-    console.log('DURATIONS:', JSON.stringify(songDurations));
+    d.songs.forEach(s => {
+        if(s && typeof s === 'object' && s.name){
+            songDurations[s.name] = parseInt(s.duration) || 0;
+        }
+    });
+    console.log('DURATIONS ON PHONE:', JSON.stringify(songDurations));
     renderTrackList();
 }
       }catch(err){
@@ -1230,19 +1233,35 @@ function startProgressSimulation(){
   progressSeconds = 0;
 
   const song = songList[currentSongIndex];
-  const audio = new Audio('http://' + document.getElementById('set-ip').value + ':5000/song/' + encodeURIComponent(song));
+  console.log('Song:', song, 'Duration:', songDurations[song]);
   
-  audio.addEventListener('loadedmetadata', () => {
-    totalSeconds = Math.round(audio.duration);
+  // Use duration from Pi (mutagen) if available
+  if(songDurations[song] && songDurations[song] > 0){
+    totalSeconds = songDurations[song];
     document.getElementById('music-time-tot').textContent = formatTime(totalSeconds);
-    audio.src = '';
-  });
-  audio.load();
+  } else {
+    // Fallback: try audio element (works on desktop, may fail on mobile)
+    totalSeconds = 180;
+    document.getElementById('music-time-tot').textContent = formatTime(totalSeconds);
+    const audio = new Audio('http://' + document.getElementById('set-ip').value + ':5000/song/' + encodeURIComponent(song));
+    audio.addEventListener('loadedmetadata', () => {
+      if(audio.duration && isFinite(audio.duration)){
+        totalSeconds = Math.round(audio.duration);
+        document.getElementById('music-time-tot').textContent = formatTime(totalSeconds);
+      }
+      audio.src = '';
+    });
+    audio.load();
+  }
 
   progressInterval = setInterval(()=>{
     if(!isPlaying) return;
     progressSeconds++;
-    if(totalSeconds > 0 && progressSeconds >= totalSeconds){ clearInterval(progressInterval); nextSong(); return; }
+    if(totalSeconds > 0 && progressSeconds >= totalSeconds){ 
+      clearInterval(progressInterval); 
+      nextSong(); 
+      return; 
+    }
     const pct = totalSeconds > 0 ? (progressSeconds/totalSeconds)*100 : 0;
     document.getElementById('music-progress-bar').style.width = pct+'%';
     document.getElementById('music-time-cur').textContent = formatTime(progressSeconds);
