@@ -334,7 +334,7 @@ input[type=range]{flex:1;accent-color:var(--purple)}
       <button class="mic-btn" id="ai-mic" onclick="toggleMic('ai')">🎤</button>
       <div class="bubble ai" id="ai-response" style="display:none"></div>
     </div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;font-size:12px;color:var(--text3);line-height:1.7">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;font-size:12px;color:var(--text3);line-height:1.7">
       💡 <strong style="color:var(--text2)">Tip:</strong> You can say <em style="color:var(--purple3)">"go to living room"</em> or <em style="color:var(--purple3)">"come here"</em> and Zyro will navigate automatically if spots are saved in Travel.
     </div>
   </div>
@@ -1010,9 +1010,13 @@ function connect(){
         }
 
         if(d.type==='song_list'){
-          songList=d.songs;
-          renderTrackList();
-        }
+    console.log('SONGS FROM PI:', JSON.stringify(d.songs));
+    songList = d.songs.map(s => typeof s === 'object' ? s.name : s);
+    songDurations = {};
+    d.songs.forEach(s => { if(s.duration) songDurations[s.name] = s.duration; });
+    console.log('DURATIONS:', JSON.stringify(songDurations));
+    renderTrackList();
+}
       }catch(err){
         addLog('Message error: '+err.message,'err');
       }
@@ -1106,11 +1110,12 @@ function sendCmd(cmd){
 }
 
 let songList = [];
+let songDurations = {};
 let currentSongIndex = -1;
 let isPlaying = false;
 let progressInterval = null;
 let progressSeconds = 0;
-let totalSeconds = 0;
+totalSeconds = songDurations[songList[currentSongIndex]] || 180;
 
 function loadSongs(){
   if(!ws || !isConnected){
@@ -1222,13 +1227,22 @@ function changeVolume(v){
 function startProgressSimulation(){
   clearInterval(progressInterval);
   progressSeconds = 0;
-  totalSeconds = 180;
-  document.getElementById('music-time-tot').textContent = formatTime(totalSeconds);
+
+  const song = songList[currentSongIndex];
+  const audio = new Audio('http://' + document.getElementById('set-ip').value + ':5000/song/' + encodeURIComponent(song));
+  
+  audio.addEventListener('loadedmetadata', () => {
+    totalSeconds = Math.round(audio.duration);
+    document.getElementById('music-time-tot').textContent = formatTime(totalSeconds);
+    audio.src = '';
+  });
+  audio.load();
+
   progressInterval = setInterval(()=>{
     if(!isPlaying) return;
     progressSeconds++;
-    if(progressSeconds >= totalSeconds){ clearInterval(progressInterval); nextSong(); return; }
-    const pct = (progressSeconds/totalSeconds)*100;
+    if(totalSeconds > 0 && progressSeconds >= totalSeconds){ clearInterval(progressInterval); nextSong(); return; }
+    const pct = totalSeconds > 0 ? (progressSeconds/totalSeconds)*100 : 0;
     document.getElementById('music-progress-bar').style.width = pct+'%';
     document.getElementById('music-time-cur').textContent = formatTime(progressSeconds);
   }, 1000);
@@ -1823,119 +1837,249 @@ function saveSettings(){
   );
 
 }
-
 // ─────────────────────────────
 // MIC + AI
 // ─────────────────────────────
 
-let cmdListening=false,aiListening=false,recognition=null;
+let cmdListening = false, aiListening = false;
+let recognition = null;
+let micBusy = false;
 
-function toggleMic(mode){
+function toggleMic(mode) {
   window.speechSynthesis.cancel();
-  if(mode==='cmd'&&cmdListening){stopMic();return;}
-  if(mode==='ai'&&aiListening){stopMic();return;}
+  if (micBusy) { stopMic(); return; }
   startMic(mode);
 }
 
-function stopMic(){
-  if(recognition)recognition.stop();
-  cmdListening=false;aiListening=false;
-  document.getElementById('cmd-mic').className='mic-btn';
-  document.getElementById('ai-mic').className='mic-btn';
-  document.getElementById('cmd-mic').style.boxShadow='';
-  document.getElementById('ai-mic').style.boxShadow='';
+function stopMic() {
+  micBusy = false;
+  const r = recognition;
+  recognition = null;
+  cmdListening = false;
+  aiListening = false;
+  document.getElementById('cmd-mic').className = 'mic-btn';
+  document.getElementById('ai-mic').className = 'mic-btn';
+  if (r) { r.onend = null; r.onerror = null; r.onresult = null; try { r.abort(); } catch(e) {} }
 }
 
-function startMic(mode){
-  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){
-    addLog('Speech recognition not supported','err');return;
+function startMic(mode) {
+  if (micBusy) return;
+  micBusy = true;
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert('Speech recognition not supported. Use Chrome on Android.');
+    micBusy = false;
+    return;
   }
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition=new SR();
-  recognition.lang='en-IN';
-  recognition.continuous=false;
-  recognition.interimResults=true;
-  const micId=mode==='cmd'?'cmd-mic':'ai-mic';
-  const transId=mode==='cmd'?'cmd-transcript':'ai-transcript';
-  if(mode==='cmd')cmdListening=true;else aiListening=true;
-  document.getElementById(micId).className='mic-btn pressed listening';document.getElementById(micId).className='mic-btn listening';
-  document.getElementById(transId).textContent='Listening...';
-  recognition.onresult=(e)=>{
-    let txt='';
-    for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
-    document.getElementById(transId).textContent=txt;
-    if(e.results[e.results.length-1].isFinal){
-      if(mode==='cmd'){
-        sendCmd('SPEECH:'+txt);
-        document.getElementById('cmd-response').textContent='Command sent to ZYROS';
-        document.getElementById('cmd-response').style.display='block';
-      }else{
-        callGroqDirect(txt);
+
+  const micId   = mode === 'cmd' ? 'cmd-mic'       : 'ai-mic';
+  const transId = mode === 'cmd' ? 'cmd-transcript' : 'ai-transcript';
+  const respId  = mode === 'cmd' ? 'cmd-response'   : 'ai-response';
+
+  if (mode === 'cmd') cmdListening = true;
+  else aiListening = true;
+
+  document.getElementById(micId).className = 'mic-btn listening';
+  document.getElementById(transId).textContent = '🎤 Listening...';
+  document.getElementById(respId).style.display = 'none';
+
+  recognition = new SR();
+  recognition.lang = 'en-IN';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    document.getElementById(transId).textContent = final || interim;
+
+    if (final) {
+      const text = final.trim();
+      addLog('Heard: ' + text, 'ok');
+      if (mode === 'cmd') {
+        sendCmd('SPEECH:' + text);
+        document.getElementById(respId).textContent = '✅ Sent: ' + text;
+        document.getElementById(respId).style.display = 'block';
+      } else {
+        document.getElementById(respId).textContent = '⏳ Thinking...';
+        document.getElementById(respId).style.display = 'block';
+        callGroqDirect(text);
       }
     }
   };
-  recognition.onend=()=>{
-    cmdListening=false;aiListening=false;
-    document.getElementById(micId).className='mic-btn';
+
+  recognition.onerror = (e) => {
+    addLog('Mic error: ' + e.error, 'err');
+    const msgs = {
+      'not-allowed':   '❌ Mic blocked — allow mic in browser settings.',
+      'no-speech':     '❌ Nothing heard. Tap mic and try again.',
+      'network':       '❌ Network error.',
+      'audio-capture': '❌ No microphone found.'
+    };
+    document.getElementById(transId).textContent = msgs[e.error] || ('❌ ' + e.error);
+    stopMic();
   };
-  recognition.onerror=(e)=>{addLog('Mic error: '+e.error,'err');stopMic();};
-  recognition.start();
+
+  recognition.onend = () => {
+    const trans = document.getElementById(transId);
+    if (trans.textContent === '🎤 Listening...') {
+      trans.textContent = '❌ Nothing heard. Tap mic and try again.';
+    }
+    stopMic();
+  };
+
+  try {
+    recognition.start();
+    addLog('Mic started', 'info');
+  } catch(e) {
+    addLog('Mic start failed: ' + e.message, 'err');
+    document.getElementById(transId).textContent = '❌ ' + e.message;
+    stopMic();
+  }
 }
 
-async function callGroqDirect(text){
-  document.getElementById('ai-response').textContent='Thinking...';
-  document.getElementById('ai-response').style.display='block';
-  addLog('Asking AI: '+text,'info');
+async function callGroqDirect(text) {
+  document.getElementById('ai-response').textContent = '⏳ Thinking...';
+  document.getElementById('ai-response').style.display = 'block';
+  addLog('Asking AI: ' + text, 'info');
 
-  // If Pi is connected, send to Pi and let it handle Groq + espeak
-  if(ws && isConnected){
-    ws.send(JSON.stringify({type:'ask_text', text:text}));
-    addLog('Sent to ZYROS','info');
+  if (ws && isConnected) {
+    ws.send(JSON.stringify({ type: 'ask_text', text: text }));
+    addLog('Sent to ZYROS on Pi', 'info');
     return;
   }
 
-  // Otherwise call Groq directly from app
-  const key=document.getElementById('ai-key').value.trim()||localStorage.getItem('groq_key');
-  if(!key){
-    addLog('Add API key in Settings','err');
-    document.getElementById('ai-response').textContent='Please add your API key in Settings first.';
+  const key = document.getElementById('ai-key').value.trim() || localStorage.getItem('groq_key');
+  if (!key) {
+    document.getElementById('ai-response').textContent = '⚠️ Add your Groq API key in Settings.';
     return;
   }
 
-  try{
-    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({
-        model:'llama-3.3-70b-versatile',
-        messages:[
-          {role:'system',content:'You are ZYROS, a futuristic humanoid robot assistant. Reply concisely and intelligently.DONT use things like - dash hash and all if you want to say something like 2-3%say 2 to 3 percentnot not in short form'},
-          {role:'user',content:text}
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'You are ZYROS, a futuristic robot assistant. Reply concisely. No markdown, no dashes, no hashes.' },
+          { role: 'user', content: text }
         ],
-        max_tokens:200
+        max_tokens: 200
       })
     });
-    const d=await res.json();
-    if(d.error){addLog('AI error: '+d.error.message,'err');document.getElementById('ai-response').textContent='Error: '+d.error.message;return;}
-    const reply=d.choices[0].message.content;
-    document.getElementById('ai-response').textContent=reply;
-    addLog('AI replied','ok');
+    const d = await res.json();
+    if (d.error) {
+      document.getElementById('ai-response').textContent = '❌ ' + d.error.message;
+      addLog('AI error: ' + d.error.message, 'err');
+      return;
+    }
+    const reply = d.choices[0].message.content.trim();
+    document.getElementById('ai-response').textContent = reply;
+    addLog('AI replied', 'ok');
     speakText(reply);
-  }catch(err){
-    addLog('AI error: '+err.message,'err');
-    document.getElementById('ai-response').textContent='Connection error.';
+  } catch(err) {
+    document.getElementById('ai-response').textContent = '❌ Connection error: ' + err.message;
+    addLog('AI error: ' + err.message, 'err');
   }
 }
 
-function speakText(text){
-  if(!settings.voice)return;
+function speakText(text) {
+  if (!settings.voice) return;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='en-US';
-  u.rate=1.0;
-  u.pitch=0.9;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-IN';
+  u.rate = 1.0;
+  u.pitch = 0.9;
   window.speechSynthesis.speak(u);
 }
+// ─────────────────────────────
+// GROQ — routes to Pi if connected (BT speaker),
+//        or browser speechSynthesis if offline
+// ─────────────────────────────
+
+async function callGroqDirect(text) {
+  const respEl = document.getElementById('ai-response');
+
+  // Pi is connected → send to Pi → Pi calls Groq + speaks on BT speaker + sends text back
+  if (ws && isConnected) {
+    ws.send(JSON.stringify({ type: 'ask_text', text: text }));
+    respEl.textContent  = '⏳ Asking ZYROS on Pi...';
+    respEl.style.display = 'block';
+    addLog('Routed to Pi for Groq + BT speech', 'info');
+    return;
+    // Pi replies with type:"ai_display" → ws.onmessage already handles it
+  }
+
+  // No Pi → call Groq from browser, speak on device
+  const key = document.getElementById('ai-key').value.trim();
+  if (!key) {
+    respEl.textContent  = '⚠️ No API key set. Add your Groq key in Settings.';
+    respEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'You are ZYROS, a futuristic robot assistant. Reply concisely. Do not use dashes, hashes or markdown.' },
+          { role: 'user',   content: text }
+        ],
+        max_tokens: 200,
+        temperature: 0.7
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err?.error?.message || res.statusText);
+    }
+
+    const data   = await res.json();
+    const answer = data?.choices?.[0]?.message?.content?.trim() || 'No response received.';
+
+    respEl.textContent  = answer;
+    respEl.style.display = 'block';
+    addLog('Groq replied (browser direct)', 'ok');
+
+    speakOnDevice(answer);   // phone/laptop speaker since Pi not connected
+
+  } catch(e) {
+    respEl.textContent  = '❌ Groq error: ' + e.message;
+    respEl.style.display = 'block';
+    addLog('Groq error: ' + e.message, 'err');
+  }
+}
+
+function speakOnDevice(text) {
+  if (!settings.voice) return;
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt  = new SpeechSynthesisUtterance(text);
+  utt.lang   = 'en-US';
+  utt.rate   = 1.0;
+  utt.pitch  = 1.0;
+  window.speechSynthesis.speak(utt);
+}
+
+// called from ws.onmessage ai_response handler
+function speakText(text) {
+  speakOnDevice(text);
+}
+
+
 
 function updateSystem(s){
   if(s.cpu!=null){
