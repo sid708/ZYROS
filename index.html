@@ -765,6 +765,7 @@ input[type=range]{flex:1;accent-color:var(--purple)}
 let ws=null;
 let isConnected=false;
 let currentUtterance = null;
+let speechId = 0; // increment on each new request, old ones check and bail
 
 let pageStack=['page-home'];
 
@@ -1847,12 +1848,11 @@ let recognition = null;
 let micBusy = false;
 
 function toggleMic(mode) {
-  window.speechSynthesis.cancel();  // already there
-  currentUtterance = null;          // add this — clears the reference immediately
+  speechId++;  // ← add this
+  window.speechSynthesis.cancel();
   if (micBusy) { stopMic(); return; }
   startMic(mode);
 }
-
 function stopMic() {
   micBusy = false;
   const r = recognition;
@@ -1945,11 +1945,20 @@ function startMic(mode) {
   }
 }
 
+// ─────────────────────────────
+// GROQ — routes to Pi if connected (BT speaker),
+//        or browser speechSynthesis if offline
+// ─────────────────────────────
+
 async function callGroqDirect(text) {
-  window.speechSynthesis.cancel();  // add this line at the very top
-  currentUtterance = null;
-  document.getElementById('ai-response').textContent = '⏳ Thinking...';
-  // ... rest unchanged
+  speechId++;
+  const myId = speechId;
+  window.speechSynthesis.cancel();
+
+  const respEl = document.getElementById('ai-response');
+  respEl.textContent = '⏳ Thinking...';
+  respEl.style.display = 'block';
+  addLog('Asking AI: ' + text, 'info');
 
   if (ws && isConnected) {
     ws.send(JSON.stringify({ type: 'ask_text', text: text }));
@@ -1959,7 +1968,7 @@ async function callGroqDirect(text) {
 
   const key = document.getElementById('ai-key').value.trim() || localStorage.getItem('groq_key');
   if (!key) {
-    document.getElementById('ai-response').textContent = '⚠️ Add your Groq API key in Settings.';
+    respEl.textContent = '⚠️ Add your Groq API key in Settings.';
     return;
   }
 
@@ -1973,99 +1982,34 @@ async function callGroqDirect(text) {
           { role: 'system', content: 'You are ZYROS, a futuristic robot assistant. Reply concisely. No markdown, no dashes, no hashes.' },
           { role: 'user', content: text }
         ],
-        max_tokens: 200
-      })
-    });
-    const d = await res.json();
-    if (d.error) {
-      document.getElementById('ai-response').textContent = '❌ ' + d.error.message;
-      addLog('AI error: ' + d.error.message, 'err');
-      return;
-    }
-    const reply = d.choices[0].message.content.trim();
-    document.getElementById('ai-response').textContent = reply;
-    addLog('AI replied', 'ok');
-    speakText(reply);
-  } catch(err) {
-    document.getElementById('ai-response').textContent = '❌ Connection error: ' + err.message;
-    addLog('AI error: ' + err.message, 'err');
-  }
-}
-
-function speakText(text) {
-  if (!settings.voice) return;
-  window.speechSynthesis.cancel();
-  currentUtterance = new SpeechSynthesisUtterance(text);
-  currentUtterance.lang = 'en-IN';
-  currentUtterance.rate = 1.0;
-  currentUtterance.pitch = 0.9;
-  currentUtterance.onend = () => { currentUtterance = null; };
-  window.speechSynthesis.speak(currentUtterance);
-}
-
-// ─────────────────────────────
-// GROQ — routes to Pi if connected (BT speaker),
-//        or browser speechSynthesis if offline
-// ─────────────────────────────
-
-async function callGroqDirect(text) {
-  const respEl = document.getElementById('ai-response');
-
-  // Pi is connected → send to Pi → Pi calls Groq + speaks on BT speaker + sends text back
-  if (ws && isConnected) {
-    ws.send(JSON.stringify({ type: 'ask_text', text: text }));
-    respEl.textContent  = '⏳ Asking ZYROS on Pi...';
-    respEl.style.display = 'block';
-    addLog('Routed to Pi for Groq + BT speech', 'info');
-    return;
-    // Pi replies with type:"ai_display" → ws.onmessage already handles it
-  }
-
-  // No Pi → call Groq from browser, speak on device
-  const key = document.getElementById('ai-key').value.trim();
-  if (!key) {
-    respEl.textContent  = '⚠️ No API key set. Add your Groq key in Settings.';
-    respEl.style.display = 'block';
-    return;
-  }
-
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + key,
-        'Content-Type':  'application/json'
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are ZYROS, a futuristic robot assistant. Reply concisely. Do not use dashes, hashes or markdown.' },
-          { role: 'user',   content: text }
-        ],
         max_tokens: 200,
         temperature: 0.7
       })
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err?.error?.message || res.statusText);
-    }
-
-    const data   = await res.json();
-    const answer = data?.choices?.[0]?.message?.content?.trim() || 'No response received.';
-
-    respEl.textContent  = answer;
-    respEl.style.display = 'block';
-    addLog('Groq replied (browser direct)', 'ok');
-
-    speakOnDevice(answer);   // phone/laptop speaker since Pi not connected
-
-  } catch(e) {
-    respEl.textContent  = '❌ Groq error: ' + e.message;
-    respEl.style.display = 'block';
-    addLog('Groq error: ' + e.message, 'err');
+    const d = await res.json();
+    if (myId !== speechId) return; // newer request came in, discard
+    if (d.error) { respEl.textContent = '❌ ' + d.error.message; return; }
+    const reply = d.choices[0].message.content.trim();
+    if (myId !== speechId) return; // check again before speaking
+    respEl.textContent = reply;
+    addLog('AI replied', 'ok');
+    speakText(reply, myId);
+  } catch(err) {
+    respEl.textContent = '❌ ' + err.message;
+    addLog('AI error: ' + err.message, 'err');
   }
+}
+
+function speakText(text, myId) {
+  if (!settings.voice) return;
+  if (!window.speechSynthesis) return;
+  if (myId !== undefined && myId !== speechId) return; // stale, don't speak
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'en-IN';
+  utt.rate = 1.0;
+  utt.pitch = 0.9;
+  window.speechSynthesis.speak(utt);
 }
 
 function speakOnDevice(text) {
