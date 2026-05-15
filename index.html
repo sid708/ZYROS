@@ -311,9 +311,8 @@ input[type=range]{flex:1;accent-color:var(--purple)}
 <!-- TALK -->
 <div class="page" id="page-talk">
   <div class="topbar">
-    <button class="back-btn" onclick="goBack()">← Back</button>
-    <div class="topbar-title">TALK</div>
-    <button style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:4px" onclick="speechId++;window.speechSynthesis.cancel()">⏹ Stop</button>
+    <button style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:4px" 
+  onclick="speakingStopped=true; speechId++; window.speechSynthesis.cancel()">⏹ Stop</button>
 </div>
   <div class="talk-section">
     <div class="talk-card">
@@ -2000,16 +1999,34 @@ async function callGroqDirect(text) {
   }
 }
 
+let currentSentences = [];
+let speakingStopped = false;
+
 function speakText(text, myId) {
   if (!settings.voice) return;
   if (!window.speechSynthesis) return;
-  if (myId !== undefined && myId !== speechId) return; // stale, don't speak
+  if (myId !== undefined && myId !== speechId) return;
+
+  speakingStopped = false;
   window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'en-IN';
-  utt.rate = 1.0;
-  utt.pitch = 0.9;
-  window.speechSynthesis.speak(utt);
+
+  // split into sentences
+  const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+
+  function speakNext(i) {
+    if (speakingStopped) return;
+    if (myId !== undefined && myId !== speechId) return;
+    if (i >= sentences.length) return;
+
+    const utt = new SpeechSynthesisUtterance(sentences[i].trim());
+    utt.lang = 'en-IN';
+    utt.rate = 1.0;
+    utt.pitch = 0.9;
+    utt.onend = () => speakNext(i + 1);
+    window.speechSynthesis.speak(utt);
+  }
+
+  speakNext(0);
 }
 
 function speakOnDevice(text) {
