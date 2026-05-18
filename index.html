@@ -311,9 +311,11 @@ input[type=range]{flex:1;accent-color:var(--purple)}
 <!-- TALK -->
 <div class="page" id="page-talk">
   <div class="topbar">
-    <button style="background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:4px" 
-  onclick="speakingStopped=true; speechId++; window.speechSynthesis.cancel()">⏹ Stop</button>
-</div>
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="topbar-title">TALK</div>
+    <button style="background:none;border:none;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;padding:4px"
+      onclick="speakingStopped=true; speechId++; window.speechSynthesis.cancel(); stopMic()">⏹ Stop</button>
+  </div>
   <div class="talk-section">
     <div class="talk-card">
       <div class="tch">
@@ -605,6 +607,18 @@ input[type=range]{flex:1;accent-color:var(--purple)}
           onclick="clearAllSpots()"
           style="font-size:12px;padding:6px 12px;color:var(--red);border-color:#ef444430">
           Clear
+        </button>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Shutdown ZYROS</div>
+          <div class="settings-row-desc">Safely power off the Pi</div>
+        </div>
+        <button class="btn btn-outline"
+          onclick="shutdownPi()"
+          style="font-size:12px;padding:6px 12px;color:var(--red);border-color:#ef444430">
+          ⏻ Shutdown
         </button>
       </div>
 
@@ -2065,6 +2079,46 @@ function speakText(text) {
 }
 
 
+// ─────────────────────────────
+// SHUTDOWN PI — requires biometric/PIN auth
+// ─────────────────────────────
+async function shutdownPi() {
+  if (!ws || !isConnected) {
+    alert('Not connected to ZYROS.');
+    return;
+  }
+
+  // Try biometric / device PIN via WebAuthn
+  let verified = false;
+  try {
+    const challenge = new Uint8Array(32);
+    crypto.getRandomValues(challenge);
+
+    // Use a stored credential if available, else prompt anyway
+    await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        timeout: 30000,
+        userVerification: 'required',   // forces fingerprint or PIN
+        allowCredentials: []            // empty = any credential on device
+      }
+    });
+    verified = true;
+  } catch (e) {
+    // WebAuthn not available or user cancelled
+    if (e.name === 'NotAllowedError') {
+      addLog('Shutdown cancelled by user', 'warn');
+      return;
+    }
+    // Fallback: simple confirm if WebAuthn unsupported
+    verified = confirm('⚠️ Biometrics not available.\nShutdown ZYROS Pi anyway?');
+  }
+
+  if (!verified) return;
+
+  addLog('Shutdown authorised — sending to Pi', 'warn');
+  ws.send(JSON.stringify({ type: 'command', command: 'SHUTDOWN' }));
+}
 
 function updateSystem(s){
   if(s.cpu!=null){
