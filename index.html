@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="theme-color" content="#050508"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
 <title>ZYROS</title>
@@ -180,6 +180,90 @@ input[type=range]{flex:1;accent-color:var(--purple)}
 .nav-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;display:none;z-index:999;white-space:nowrap}
 .nav-toast.show{display:block;animation:fadeup .3s ease}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* PHONE-SPECIFIC HARDENING */
+html,body{width:100%;height:100%;overscroll-behavior:none}
+body{touch-action:pan-y}
+.app{height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+.page{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.page::-webkit-scrollbar{display:none}
+button,.mc,.qa-btn,.dp,.cam-btn,.env-tab,.spot-go,.spot-del,.icon-btn,.toggle{touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.dp{touch-action:none}
+input,textarea,select{font-size:16px}
+@media(max-width:360px){
+  .home-header{padding-left:14px;padding-right:14px}
+  .zyros-name{font-size:26px;letter-spacing:5px}
+  .zyros-sub{font-size:7px;letter-spacing:1px}
+  .menu-grid{padding-left:14px;padding-right:14px;gap:8px}
+  .mc{padding:14px;min-height:116px}
+  .dpad{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,60px);width:min(100%,220px);gap:6px}
+  .dpad-wrap{padding:16px}
+  .section,.talk-section,.cam-wrap,.travel-wrap,.system-wrap,.settings-wrap,.logs-wrap{padding-left:14px;padding-right:14px}
+}
+
+
+/* ZYROS POLISHED MOBILE THEME — visual-only overrides; app logic and layout preserved */
+:root{
+  --bg:#070b18;--bg2:#0c1428;--bg3:#111e38;--bg4:#1a2b4b;
+  --border:rgba(116,160,255,.16);--border2:rgba(116,174,255,.30);
+  --purple:#7657ff;--purple3:#c8c4ff;--cyan:#39d9ff;--green:#32e6a2;--red:#ff627d;--amber:#ffc66d;--pink:#ff70ce;
+  --text:#f3f6ff;--text2:#a9b8d8;--text3:#7385ab;
+}
+html,body{background:radial-gradient(ellipse at 50% -12%,#1d3d78 0%,#0a142b 38%,#060a16 75%);color:var(--text)}
+.app{background:transparent;isolation:isolate}
+.page{background:linear-gradient(180deg,rgba(8,14,30,.97),rgba(5,9,21,.99));}
+.page:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(ellipse at 100% 0%,rgba(46,115,255,.09),transparent 40%),radial-gradient(ellipse at 0% 70%,rgba(0,220,255,.045),transparent 35%)}
+.topbar{padding-top:max(52px,calc(env(safe-area-inset-top) + 18px));padding-bottom:18px}
+.topbar-title{color:#a8c0ee;font-weight:700;letter-spacing:2.2px}
+.back-btn{color:#a9a3ff;font-weight:650}
+.icon-btn{background:linear-gradient(145deg,#172847,#0e1830);border-color:rgba(127,173,255,.27);box-shadow:0 5px 16px rgba(0,0,0,.18)}
+.home-header{padding-top:max(52px,calc(env(safe-area-inset-top) + 18px));padding-bottom:18px}
+.logo-svg{filter:drop-shadow(0 0 10px rgba(65,208,255,.22))}
+.zyros-name{background:linear-gradient(100deg,#a99aff 0%,#48dfff 58%,#9cecff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(65,151,255,.15));letter-spacing:5px}
+.zyros-sub{color:#8da4cb;letter-spacing:1.7px}
+.conn-badge{background:rgba(13,31,57,.82);border-color:rgba(74,219,255,.23);box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.conn-text{color:#c6d7f5}
+.conn-dot.on{box-shadow:0 0 10px rgba(50,230,162,.7)}
+/* Shared cards and panels */
+.mc,.qa-btn,.settings-group,.log-entry,.system-card,.travel-card,.cam-card,.talk-section,.section,.spot-card{
+  background:linear-gradient(145deg,rgba(20,36,67,.94),rgba(10,19,39,.96));
+  border-color:rgba(115,163,255,.2);box-shadow:0 8px 24px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.035);
+}
+.mc{border-radius:20px;transition:transform .18s,border-color .18s,box-shadow .18s}
+.mc:active,.qa-btn:active{transform:scale(.975);border-color:rgba(57,217,255,.7);box-shadow:0 0 0 1px rgba(57,217,255,.12),0 8px 24px rgba(0,0,0,.2)}
+.mc-title,.section-title,.panel-title{color:#f0f5ff}
+.mc-value,.metric-value{color:#f7fbff;text-shadow:0 0 18px rgba(57,217,255,.12)}
+.mc-icon{filter:drop-shadow(0 0 8px rgba(57,217,255,.16))}
+.section-title,.section-heading{letter-spacing:1.2px}
+.menu-grid{gap:12px}
+.qa-grid{gap:12px}
+.qa-btn{border-radius:18px;position:relative;overflow:hidden;transition:transform .18s,border-color .18s}
+.qa-btn:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(99,125,255,.08),transparent 52%)}
+.qa-icon{filter:drop-shadow(0 0 8px rgba(94,193,255,.22))}
+.qa-label{color:#f1f5ff;font-weight:650}
+.qa-desc{color:#9aafd3}
+/* Navigation / control surfaces */
+.bottom-nav,.nav-bar,.tab-bar{background:rgba(7,13,29,.94);border-top:1px solid rgba(106,160,255,.2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.dpad-wrap{background:linear-gradient(145deg,rgba(20,37,68,.92),rgba(9,17,35,.95));border:1px solid rgba(111,159,255,.2);border-radius:24px}
+.dp{background:linear-gradient(145deg,#203c68,#122441);border:1px solid rgba(133,177,255,.25);color:#e8f4ff;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.dp:active{background:linear-gradient(145deg,#2772a6,#3b4b9d);border-color:var(--cyan)}
+input,textarea,select,.settings-inp{background:rgba(8,17,36,.9);border-color:rgba(125,165,235,.27);color:#f4f7ff;border-radius:12px}
+input:focus,textarea:focus,select:focus,.settings-inp:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(57,217,255,.1)}
+button:not(.back-btn){transition:filter .16s,transform .16s,border-color .16s}
+button:focus-visible,.mc:focus-visible,.qa-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.toggle{background:linear-gradient(90deg,#6155f5,#32cfff);box-shadow:0 0 14px rgba(80,148,255,.16)}
+.toggle.off{background:#30415f;box-shadow:none}
+.log-entry{border-radius:14px}
+.log-time{color:#8096bd}
+.log-msg.ok{color:#55edb5}.log-msg.err{color:#ff8095}.log-msg.info{color:#55dfff}.log-msg.warn{color:#ffd080}
+.nav-toast{background:linear-gradient(100deg,#6756f6,#1baed8);box-shadow:0 8px 28px rgba(28,117,255,.28)}
+/* Improve readability without changing page structure */
+.page h1,.page h2,.page h3{color:#f3f6ff}
+.page p{color:inherit}
+::selection{background:rgba(57,217,255,.25);color:#fff}
+@media(max-width:360px){.zyros-name{letter-spacing:4px}.qa-grid{gap:9px}.qa-btn{padding:14px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
 </style>
 </head>
 <body>
@@ -285,13 +369,13 @@ input[type=range]{flex:1;accent-color:var(--purple)}
     <div class="slabel">MOVEMENT</div>
     <div class="dpad">
       <div class="dp-empty"></div>
-      <div class="dp" onpointerdown="pressDir('FORWARD','dp-fwd')" onpointerup="releaseDir()" id="dp-fwd">↑</div>
+      <div class="dp" onpointerdown="pressDir('FORWARD','dp-fwd')" onpointerup="releaseDir()" onpointercancel="releaseDir()" onpointerleave="releaseDir()" id="dp-fwd">↑</div>
       <div class="dp-empty"></div>
-      <div class="dp" onpointerdown="pressDir('LEFT','dp-left')" onpointerup="releaseDir()" id="dp-left">←</div>
+      <div class="dp" onpointerdown="pressDir('LEFT','dp-left')" onpointerup="releaseDir()" onpointercancel="releaseDir()" onpointerleave="releaseDir()" id="dp-left">←</div>
       <div class="dp dp-stop" onpointerdown="sendCmd('STOP')">STOP</div>
-      <div class="dp" onpointerdown="pressDir('RIGHT','dp-right')" onpointerup="releaseDir()" id="dp-right">→</div>
+      <div class="dp" onpointerdown="pressDir('RIGHT','dp-right')" onpointerup="releaseDir()" onpointercancel="releaseDir()" onpointerleave="releaseDir()" id="dp-right">→</div>
       <div class="dp-empty"></div>
-      <div class="dp" onpointerdown="pressDir('BACKWARD','dp-bwd')" onpointerup="releaseDir()" id="dp-bwd">↓</div>
+      <div class="dp" onpointerdown="pressDir('BACKWARD','dp-bwd')" onpointerup="releaseDir()" onpointercancel="releaseDir()" onpointerleave="releaseDir()" id="dp-bwd">↓</div>
       <div class="dp-empty"></div>
     </div>
     <div class="speed-row">
